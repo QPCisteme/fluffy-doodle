@@ -1,0 +1,8 @@
+menuconfig CISTEME_MPL460A
+    bool "Enable CISTEME MPL460A CPL Module Driver"
+    default y
+    depends on DT_HAS_CISTEME_MPL460A_ENABLED
+    select SPI
+    select GPIO
+    help
+      Flag allowing the driver import

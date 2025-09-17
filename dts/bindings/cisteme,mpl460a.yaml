@@ -1,0 +1,36 @@
+description: "CISTEME MPL460A CPL Module Driver"
+
+compatible: "cisteme,mpl460a"
+
+include: [spi-device.yaml, gpio-leds.yaml]
+
+properties:
+  nrst-gpios:
+    type: phandle-array
+    required: true
+    description: GPIO connected to NRST (reset) pin
+
+  en-gpios:
+    type: phandle-array
+    required: true
+    description: GPIO connected to EN (enable) pin
+
+  stby-gpios:
+    type: phandle-array
+    required: false
+    description: GPIO connected to STBY (standby) pin
+
+  txen-gpios:
+    type: phandle-array
+    required: false
+    description: GPIO connected to TXEN (transmit enable) pin
+
+  extin-gpios:
+    type: phandle-array
+    required: false
+    description: GPIO connected to EXTIN (external input) pin
+
+  nthw0-gpios:
+    type: phandle-array
+    required: false
+    description: GPIO connected to NTHW0 (hardware config) pin

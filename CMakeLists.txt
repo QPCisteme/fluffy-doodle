@@ -1,0 +1,6 @@
+if (CONFIG_CISTEME_MPL460A)
+  zephyr_library()
+  zephyr_syscall_header(${ZEPHYR_CISTEME_MPL460A_MODULE_DIR}/include/cisteme_mpl460a.h)
+  zephyr_include_directories(include)
+  zephyr_library_sources(cisteme_mpl460a.c)
+endif(CONFIG_CISTEME_MPL460A)
