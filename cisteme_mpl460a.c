@@ -12,8 +12,8 @@
 #include <cisteme_mpl460a.h>
 
 // Define C function
-static int mpl460a_write(const struct device *dev, uint32_t addr, uint16_t cmd,
-                         uint8_t *data, uint8_t size)
+static int write(const struct device *dev, uint32_t addr, uint16_t cmd,
+                 uint8_t *data, uint8_t size)
 {
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;
@@ -46,8 +46,8 @@ static int mpl460a_write(const struct device *dev, uint32_t addr, uint16_t cmd,
     return 0;
 }
 
-static int mpl460a_read(const struct device *dev, uint32_t addr, uint16_t cmd,
-                        uint8_t *data, uint8_t size)
+static int read(const struct device *dev, uint32_t addr, uint16_t cmd,
+                uint8_t *data, uint8_t size)
 {
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;
@@ -75,8 +75,8 @@ static int mpl460a_read(const struct device *dev, uint32_t addr, uint16_t cmd,
     return 0;
 }
 
-static int mpl460a_firmware_write(const struct device *dev, uint8_t *data,
-                                  uint32_t size)
+static int firmware_write(const struct device *dev, uint8_t *data,
+                          uint32_t size)
 {
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;
@@ -84,8 +84,8 @@ static int mpl460a_firmware_write(const struct device *dev, uint8_t *data,
     return 0;
 }
 
-static int mpl460a_firmware_check(const struct device *dev, uint8_t *data,
-                                  uint32_t size)
+static int firmware_check(const struct device *dev, uint8_t *data,
+                          uint32_t size)
 {
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;
@@ -93,7 +93,7 @@ static int mpl460a_firmware_check(const struct device *dev, uint8_t *data,
     return 0;
 }
 
-static int mpl460a_set_nrst(const struct device *dev, uint8_t state)
+static int set_nrst(const struct device *dev, uint8_t state)
 {
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;
@@ -104,7 +104,7 @@ static int mpl460a_set_nrst(const struct device *dev, uint8_t state)
     return 0;
 }
 
-static int mpl460a_set_en(const struct device *dev, uint8_t state)
+static int set_en(const struct device *dev, uint8_t state)
 {
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;
@@ -115,7 +115,7 @@ static int mpl460a_set_en(const struct device *dev, uint8_t state)
     return 0;
 }
 
-static int mpl460a_unlock_boot(const struct device *dev)
+static int unlock_boot(const struct device *dev)
 {
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;
@@ -137,13 +137,13 @@ static int mpl460a_unlock_boot(const struct device *dev)
 
 // Fill API with functions
 static const struct mpl460a_api api = {
-    .mpl460a_write = &mpl460a_write,
-    .mpl460a_read = &mpl460a_read,
-    .mpl460a_firmware_write = &mpl460a_firmware_write,
-    .mpl460a_firmware_check = &mpl460a_firmware_check,
-    .mpl460a_set_nrst = &mpl460a_set_nrst,
-    .mpl460a_set_en = &mpl460a_set_en,
-    .mpl460a_unlock_boot = &mpl460a_unlock_boot,
+    .mpl460a_write = &write,
+    .mpl460a_read = &read,
+    .mpl460a_firmware_write = &firmware_write,
+    .mpl460a_firmware_check = &firmware_check,
+    .mpl460a_set_nrst = &set_nrst,
+    .mpl460a_set_en = &set_en,
+    .mpl460a_unlock_boot = &unlock_boot,
 };
 
 // Create data structure
