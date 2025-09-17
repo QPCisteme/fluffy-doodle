@@ -184,7 +184,8 @@ static int mpl460a_init(const struct device *dev)
 #define MPL460A_DEFINE(inst)                                                   \
     static struct mpl460a_data mpl460a_data_##inst;                            \
     static const struct mpl460a_config mpl460a_config_##inst = {               \
-        .spi = SPI_DT_SPEC_INST_GET(inst),                                     \
+        .spi =                                                                 \
+            SPI_DT_SPEC_INST_GET(inst, SPI_WORD_SET(8) | SPI_TRANSFER_MSB, 0), \
         .nrst = GPIO_DT_SPEC_INST_GET(inst, nrst_gpios),                       \
         .en = GPIO_DT_SPEC_INST_GET(inst, en_gpios),                           \
         .stby = GPIO_DT_SPEC_INST_GET(inst, stby_gpios),                       \
