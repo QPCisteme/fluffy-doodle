@@ -138,4 +138,4 @@ static inline int z_impl_mpl460a_unlock_boot(const struct device *dev)
 }
 
 // Include syscall
-#include <syscalls/mpl460a.h>
+#include <syscalls/cisteme_mpl460a.h>
