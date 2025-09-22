@@ -75,21 +75,38 @@ static int boot_read(const struct device *dev, uint32_t addr, uint16_t cmd,
     return 0;
 }
 
-static bool boot_wip(const struct device *dev)
+static int boot_wip(const struct device *dev)
 {
     uint8_t rx_data[4];
-    boot_read(dev, 0, PL460_RD_BOOT_STATUS, rx_data, 4);
+    uint8_t timeout = 255;
+    int ret;
 
-    if (rx_data[0] != 0)
-        return true;
-    else
-        return false;
+    do
+    {
+        k_usleep(100);
+
+        // Read WIP bit
+        ret = boot_read(dev, 0, PL460_RD_BOOT_STATUS, rx_data, 4);
+        if (ret < 0)
+            return ret;
+
+        // Timeout conditions
+        if (timeout-- == 0)
+        {
+            printk("FW Write Timeout\r\n");
+            return -116;
+        }
+    } while (rx_data[0] != 0);
+
+    return 0;
 }
 
 static int boot_write_fw(const struct device *dev, uint8_t *data, uint32_t size)
 {
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;
+
+    int ret;
 
     // Number of full packets of 256 bytes
     uint16_t pkt_nb = ((uint16_t)size >> 8);
@@ -115,18 +132,13 @@ static int boot_write_fw(const struct device *dev, uint8_t *data, uint32_t size)
             pkt_data[4 * i + 0] = data[write_addr + 4 * i + 3];
         }
 
-        boot_write(dev, write_addr, PL460_MULT_WR, pkt_data, 256);
+        ret = boot_write(dev, write_addr, PL460_MULT_WR, pkt_data, 256);
+        if (ret < 0)
+            return ret;
 
-        uint8_t timeout = 255;
-        while (boot_wip(dev))
-        {
-            k_usleep(100);
-            if (timeout-- == 0)
-            {
-                printk("FW Write Timeout\r\n");
-                return -1;
-            }
-        }
+        ret = boot_loop_wip(dev);
+        if (ret < 0)
+            return ret;
     }
 
     // Fill last packet with full words
@@ -149,7 +161,11 @@ static int boot_write_fw(const struct device *dev, uint8_t *data, uint32_t size)
     }
 
     // Calculate last packet size then send
-    boot_write(dev, write_addr, PL460_MULT_WR, pkt_data, (word_nb + 1) * 4);
+    ret =
+        boot_write(dev, write_addr, PL460_MULT_WR, pkt_data, (word_nb + 1) * 4);
+
+    if (ret < 0)
+        return ret;
 
     return 0;
 }
