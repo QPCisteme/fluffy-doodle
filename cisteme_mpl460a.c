@@ -185,6 +185,7 @@ static int boot_check_fw(const struct device *dev, const uint8_t *data,
     uint32_t rem = size % 252;
     uint8_t pkt_data[252];
     int ret;
+    int err;
 
     /* full packets */
     for (uint16_t pkt_index = 0; pkt_index < pkt_nb; pkt_index++)
@@ -199,7 +200,7 @@ static int boot_check_fw(const struct device *dev, const uint8_t *data,
         {
             for (int j = 0; j < 4; j++)
                 if (pkt_data[4 * i + 3 - j] != data[read_addr + 4 * i + j])
-                    return -1;
+                    err++;
         }
     }
 
@@ -221,10 +222,10 @@ static int boot_check_fw(const struct device *dev, const uint8_t *data,
     {
         for (int j = 0; j < 4; j++)
             if (pkt_data[4 * i + 3 - j] != data[read_addr + 4 * i + j])
-                return -1;
+                err++;
     }
 
-    return 0;
+    return err;
 }
 
 static int set_nrst(const struct device *dev, uint8_t state)
