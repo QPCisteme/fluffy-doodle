@@ -75,7 +75,7 @@ static int boot_read(const struct device *dev, uint32_t addr, uint16_t cmd,
     return 0;
 }
 
-static int boot_wip(const struct device *dev)
+static int boot_wait_wip(const struct device *dev)
 {
     uint8_t rx_data[4];
     uint8_t timeout = 255;
@@ -136,7 +136,7 @@ static int boot_write_fw(const struct device *dev, uint8_t *data, uint32_t size)
         if (ret < 0)
             return ret;
 
-        ret = boot_loop_wip(dev);
+        ret = boot_wait_wip(dev);
         if (ret < 0)
             return ret;
     }
