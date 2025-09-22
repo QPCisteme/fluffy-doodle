@@ -294,13 +294,13 @@ static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
 
 // Fill API with functions
 static const struct mpl460a_api api = {
-    .mpl460a_write = &boot_write,
-    .mpl460a_read = &boot_read,
-    .mpl460a_firmware_write = &boot_write_fw,
-    .mpl460a_firmware_check = &boot_check_fw,
+    .mpl460a_boot_write = &boot_write,
+    .mpl460a_boot_read = &boot_read,
+    .mpl460a_boot_write_fw = &boot_write_fw,
+    .mpl460a_boot_check_fw = &boot_check_fw,
     .mpl460a_set_nrst = &set_nrst,
     .mpl460a_set_en = &set_en,
-    .mpl460a_unlock_boot = &boot_unlock,
+    .mpl460a_boot_unlock = &boot_unlock,
     .mpl460a_get_events = &fw_get_events,
     .mpl460a_start_fw = &start_fw,
 };
