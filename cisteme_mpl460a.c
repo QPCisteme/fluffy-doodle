@@ -210,10 +210,9 @@ static int boot_check_fw(const struct device *dev, const uint8_t *data,
     read_addr = (uint32_t)pkt_nb * 252;
 
     uint8_t word_nb = rem >> 2;
-    if (rem & 0x03)
-        word_nb++;
 
-    ret = boot_read(dev, read_addr, PL460_MULT_RD, pkt_data, word_nb * 4);
+    ret = boot_read(dev, read_addr, PL460_MULT_RD, pkt_data,
+                    rem & 0x03 ? (word_nb + 1) * 4 : word_nb * 4);
     if (ret < 0)
         return ret;
 
@@ -224,6 +223,10 @@ static int boot_check_fw(const struct device *dev, const uint8_t *data,
             if (pkt_data[4 * i + 3 - j] != data[read_addr + 4 * i + j])
                 err++;
     }
+
+    for (int i = 0; i < (rem & 0x03); i++)
+        if (pkt_data[4 * word_nb + 3 - j] != data[read_addr + 4 * word_nb + j])
+            err++;
 
     return err;
 }
