@@ -183,7 +183,7 @@ static int boot_check_fw(const struct device *dev, const uint8_t *data,
     uint32_t read_addr;
     uint16_t pkt_nb = size / 252;
     uint32_t rem = size % 252;
-    uint8_t pkt_data[252], pkt_data_le[252];
+    uint8_t pkt_data[252];
     int ret;
 
     /* full packets */
@@ -191,20 +191,16 @@ static int boot_check_fw(const struct device *dev, const uint8_t *data,
     {
         read_addr = (uint32_t)pkt_index * 252;
 
-        ret = boot_read(dev, read_addr, PL460_MULT_RD, pkt_data_le, 252);
+        ret = boot_read(dev, read_addr, PL460_MULT_RD, pkt_data, 252);
         if (ret < 0)
             return ret;
 
         for (int i = 0; i < 63; i++)
         {
-            pkt_data[4 * i + 0] = pkt_data_le[4 * i + 3];
-            pkt_data[4 * i + 1] = pkt_data_le[4 * i + 2];
-            pkt_data[4 * i + 2] = pkt_data_le[4 * i + 1];
-            pkt_data[4 * i + 3] = pkt_data_le[4 * i + 0];
+            for (int j = 0; j < 4; j++)
+                if (pkt_data[4 * i + 3 - j] != data[read_addr + 4 * i + j])
+                    return -1;
         }
-
-        if (memcmp(pkt_data, &data[read_addr], 252) != 0)
-            return -EIO;
     }
 
     if (rem == 0)
@@ -216,21 +212,17 @@ static int boot_check_fw(const struct device *dev, const uint8_t *data,
     if (rem & 0x03)
         word_nb++;
 
-    ret = boot_read(dev, read_addr, PL460_MULT_RD, pkt_data_le, word_nb * 4);
+    ret = boot_read(dev, read_addr, PL460_MULT_RD, pkt_data, word_nb * 4);
     if (ret < 0)
         return ret;
 
     /* reconstruct words */
     for (int i = 0; i < word_nb; i++)
     {
-        pkt_data[4 * i + 0] = pkt_data_le[4 * i + 3];
-        pkt_data[4 * i + 1] = pkt_data_le[4 * i + 2];
-        pkt_data[4 * i + 2] = pkt_data_le[4 * i + 1];
-        pkt_data[4 * i + 3] = pkt_data_le[4 * i + 0];
+        for (int j = 0; j < 4; j++)
+            if (pkt_data[4 * i + 3 - j] != data[read_addr + 4 * i + j])
+                return -1;
     }
-
-    if (memcmp(pkt_data, &data[read_addr], rem) != 0)
-        return -EIO;
 
     return 0;
 }
