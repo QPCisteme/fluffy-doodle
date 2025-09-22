@@ -124,7 +124,7 @@ static int boot_write_fw(const struct device *dev, uint8_t *data, uint32_t size)
     for (int pkt_index = 0; pkt_index < pkt_nb; pkt_index++)
     {
         write_addr = pkt_index << 8;
-        for (int i = 0; i < 64; i++)
+        for (int i = 0; i < 63; i++)
         {
             pkt_data[4 * i + 3] = data[write_addr + 4 * i];
             pkt_data[4 * i + 2] = data[write_addr + 4 * i + 1];
@@ -198,7 +198,7 @@ static int boot_check_fw(const struct device *dev, uint8_t *data, uint32_t size)
 
         boot_read(dev, read_addr, PL460_MULT_RD, pkt_data_le, 252);
 
-        for (int i = 0; i < 64; i++)
+        for (int i = 0; i < 63; i++)
         {
             pkt_data[4 * i + 3] = pkt_data_le[4 * i];
             pkt_data[4 * i + 2] = pkt_data_le[4 * i + 1];
