@@ -83,7 +83,7 @@ static bool boot_wip(const struct device *dev)
     if (rx_data[0] != 0)
         return true;
     else
-        return false
+        return false;
 }
 
 static int boot_write_fw(const struct device *dev, uint8_t *data, uint32_t size)
