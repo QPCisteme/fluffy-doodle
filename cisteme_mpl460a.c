@@ -185,7 +185,7 @@ static int boot_check_fw(const struct device *dev, const uint8_t *data,
     uint32_t rem = size % 252;
     uint8_t pkt_data[252];
     int ret;
-    int err;
+    int err = 0;
 
     /* full packets */
     for (uint16_t pkt_index = 0; pkt_index < pkt_nb; pkt_index++)
