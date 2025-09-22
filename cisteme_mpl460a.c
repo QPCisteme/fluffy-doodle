@@ -213,14 +213,11 @@ static int boot_check_fw(const struct device *dev, const uint8_t *data,
 
     read_addr = (uint32_t)pkt_nb * 252;
     uint8_t word_nb = rem >> 2;
-    uint8_t byte_nb = rem & 0x03;
-    size_t read_len = word_nb * 4;
 
-    if (byte_nb)
-    {
-        /* we wrote an extra padded word, read it too */
-        read_len = (word_nb + 1) * 4;
-    }
+    if (rem & 0x03)
+        word_nb++;
+
+    size_t read_len = word_nb * 4;
 
     ret = boot_read(dev, read_addr, PL460_MULT_RD, pkt_data_le,
                     (uint8_t)read_len);
@@ -234,14 +231,6 @@ static int boot_check_fw(const struct device *dev, const uint8_t *data,
         pkt_data[4 * i + 1] = pkt_data_le[4 * i + 2];
         pkt_data[4 * i + 2] = pkt_data_le[4 * i + 1];
         pkt_data[4 * i + 3] = pkt_data_le[4 * i + 0];
-    }
-
-    if (byte_nb)
-    {
-        /* leftover bytes were stored as: pkt_data_le[4*word_nb + 3 - i],
-         * restore them to positions 0..byte_nb-1 */
-        for (int i = 0; i < byte_nb; i++)
-            pkt_data[4 * word_nb + i] = pkt_data_le[4 * word_nb + 3 - i];
     }
 
     /* compare only the original remaining bytes (rem) */
