@@ -103,138 +103,76 @@ static int boot_wait_wip(const struct device *dev)
 
 static int boot_write_fw(const struct device *dev, uint8_t *data, uint32_t size)
 {
-    struct mpl460a_data *drv_data = dev->data;
-    struct mpl460a_config *drv_config = dev->config;
-
     int ret;
-
-    // Number of full packets of 256 bytes
-    uint16_t pkt_nb = size / 252;
-
-    // Number of full words (4 bytes) remaining
-    uint8_t word_nb = (size % 252) >> 2;
-
-    // Number of bytes remaining
-    uint8_t byte_nb = (size % 252) & 0x03;
-
-    uint32_t write_addr;
+    uint32_t write_addr = 0;
     uint8_t pkt_data[252];
 
-    // Send all full packets
-    for (int pkt_index = 0; pkt_index < pkt_nb; pkt_index++)
+    while (size > 0)
     {
-        write_addr = pkt_index << 8;
-        for (int i = 0; i < 63; i++)
+        // Taille du paquet : maximum 252 octets, multiple de 4
+        uint8_t pkt_size = (size >= 252) ? 252 : (uint8_t)(size & 0xFC);
+        uint8_t word_nb = pkt_size / 4;
+        uint8_t byte_nb = pkt_size % 4;
+
+        // Copier les mots complets en inversant les octets
+        for (int i = 0; i < word_nb; i++)
         {
-            pkt_data[4 * i + 3] = data[write_addr + 4 * i];
-            pkt_data[4 * i + 2] = data[write_addr + 4 * i + 1];
-            pkt_data[4 * i + 1] = data[write_addr + 4 * i + 2];
             pkt_data[4 * i + 0] = data[write_addr + 4 * i + 3];
+            pkt_data[4 * i + 1] = data[write_addr + 4 * i + 2];
+            pkt_data[4 * i + 2] = data[write_addr + 4 * i + 1];
+            pkt_data[4 * i + 3] = data[write_addr + 4 * i + 0];
         }
 
-        ret = boot_write(dev, write_addr, PL460_MULT_WR, pkt_data, 252);
+        // Copier les octets restants
+        for (int i = 0; i < byte_nb; i++)
+            pkt_data[4 * word_nb + i] = data[write_addr + 4 * word_nb + i];
+
+        ret = boot_write(dev, write_addr, PL460_MULT_WR, pkt_data, pkt_size);
         if (ret < 0)
             return ret;
 
         ret = boot_wait_wip(dev);
         if (ret < 0)
             return ret;
+
+        write_addr += pkt_size;
+        size -= pkt_size;
     }
-
-    // Fill last packet with full words
-    write_addr = pkt_nb << 8;
-    for (int i = 0; i < word_nb; i++)
-    {
-        pkt_data[4 * i + 3] = data[write_addr + 4 * i];
-        pkt_data[4 * i + 2] = data[write_addr + 4 * i + 1];
-        pkt_data[4 * i + 1] = data[write_addr + 4 * i + 2];
-        pkt_data[4 * i + 0] = data[write_addr + 4 * i + 3];
-    }
-
-    // Fill last packets with remaining bytes
-    for (int i = 0; i < 4; i++)
-    {
-        if (i < byte_nb)
-            pkt_data[4 * word_nb + 3 - i] = data[write_addr + 4 * word_nb + i];
-        else
-            pkt_data[4 * word_nb + i] = 0x00;
-    }
-
-    // Calculate last packet size then send
-    ret =
-        boot_write(dev, write_addr, PL460_MULT_WR, pkt_data, (word_nb + 1) * 4);
-
-    if (ret < 0)
-        return ret;
-
-    ret = boot_wait_wip(dev);
-    if (ret < 0)
-        return ret;
 
     return 0;
 }
 
 static int boot_check_fw(const struct device *dev, uint8_t *data, uint32_t size)
 {
-    struct mpl460a_data *drv_data = dev->data;
-    struct mpl460a_config *drv_config = dev->config;
-
-    // Number of full packets of 256 bytes
-    uint16_t pkt_nb = size / 252;
-
-    // Number of full words (4 bytes) remaining
-    uint8_t word_nb = (size % 252) >> 2;
-
-    // Number of bytes remaining
-    uint8_t byte_nb = (size % 252) & 0x03;
-
-    uint32_t read_addr;
+    uint32_t read_addr = 0;
     uint8_t pkt_data[252], pkt_data_le[252];
 
-    // Send all full packets
-    for (int pkt_index = 0; pkt_index < pkt_nb; pkt_index++)
+    while (size > 0)
     {
-        read_addr = pkt_index << 8;
+        uint8_t pkt_size = (size >= 252) ? 252 : (uint8_t)(size & 0xFC);
+        uint8_t word_nb = pkt_size / 4;
+        uint8_t byte_nb = pkt_size % 4;
 
-        boot_read(dev, read_addr, PL460_MULT_RD, pkt_data_le, 252);
+        boot_read(dev, read_addr, PL460_MULT_RD, pkt_data_le, pkt_size);
 
-        for (int i = 0; i < 63; i++)
+        // Convertir les mots (reverse des octets)
+        for (int i = 0; i < word_nb; i++)
         {
-            pkt_data[4 * i + 3] = pkt_data_le[4 * i];
-            pkt_data[4 * i + 2] = pkt_data_le[4 * i + 1];
-            pkt_data[4 * i + 1] = pkt_data_le[4 * i + 2];
             pkt_data[4 * i + 0] = pkt_data_le[4 * i + 3];
+            pkt_data[4 * i + 1] = pkt_data_le[4 * i + 2];
+            pkt_data[4 * i + 2] = pkt_data_le[4 * i + 1];
+            pkt_data[4 * i + 3] = pkt_data_le[4 * i + 0];
         }
 
-        if (memcmp(pkt_data, &data[read_addr], 252) != 0)
-        {
+        // Copier les octets restants
+        for (int i = 0; i < byte_nb; i++)
+            pkt_data[4 * word_nb + i] = pkt_data_le[4 * word_nb + i];
+
+        if (memcmp(pkt_data, &data[read_addr], pkt_size) != 0)
             return -1;
-        }
-    }
 
-    // Read last 256 bytes packets
-    read_addr = pkt_nb << 8;
-    boot_read(dev, read_addr, PL460_MULT_RD, pkt_data_le, 252);
-
-    // Extract full words
-    for (int i = 0; i < word_nb; i++)
-    {
-        pkt_data[4 * i + 3] = pkt_data_le[4 * i];
-        pkt_data[4 * i + 2] = pkt_data_le[4 * i + 1];
-        pkt_data[4 * i + 1] = pkt_data_le[4 * i + 2];
-        pkt_data[4 * i + 0] = pkt_data_le[4 * i + 3];
-    }
-
-    // Extract remaining bytes
-    for (int i = 0; i < byte_nb; i++)
-    {
-        pkt_data[4 * word_nb + i] = pkt_data_le[4 * word_nb + 3 - i];
-    }
-
-    // Compare
-    if (memcmp(pkt_data, &data[read_addr], size & 0xff) != 0)
-    {
-        return -1;
+        read_addr += pkt_size;
+        size -= pkt_size;
     }
 
     return 0;
