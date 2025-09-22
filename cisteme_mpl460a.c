@@ -12,8 +12,8 @@
 #include <cisteme_mpl460a.h>
 
 // Define C function
-static int write(const struct device *dev, uint32_t addr, uint16_t cmd,
-                 uint8_t *data, uint8_t size)
+static int boot_write(const struct device *dev, uint32_t addr, uint16_t cmd,
+                      uint8_t *data, uint8_t size)
 {
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;
@@ -46,8 +46,8 @@ static int write(const struct device *dev, uint32_t addr, uint16_t cmd,
     return 0;
 }
 
-static int read(const struct device *dev, uint32_t addr, uint16_t cmd,
-                uint8_t *data, uint8_t size)
+static int boot_read(const struct device *dev, uint32_t addr, uint16_t cmd,
+                     uint8_t *data, uint8_t size)
 {
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;
@@ -75,20 +75,125 @@ static int read(const struct device *dev, uint32_t addr, uint16_t cmd,
     return 0;
 }
 
-static int firmware_write(const struct device *dev, uint8_t *data,
-                          uint32_t size)
+static int boot_write_fw(const struct device *dev, uint8_t *data, uint32_t size)
 {
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;
+
+    // Number of full packets of 256 bytes
+    uint16_t pkt_nb = ((uint16_t)size >> 8);
+
+    // Number of full words (4 bytes) remaining
+    uint8_t word_nb = (uint8_t)((size >> 2) & 0x3f);
+
+    // Number of bytes remaining
+    uint8_t byte_nb = (uint8_t)(size & 0x03);
+
+    uint32_t write_addr;
+    uint8_t pkt_data[256];
+
+    // Send all full packets
+    for (int pkt_index = 0; pkt_index < pkt_nb; pkt_index++)
+    {
+        write_addr = pkt_index << 8;
+        for (int i = 0; i < 64; i++)
+        {
+            pkt_data[4 * i + 3] = data[write_addr + 4 * i];
+            pkt_data[4 * i + 2] = data[write_addr + 4 * i + 1];
+            pkt_data[4 * i + 1] = data[write_addr + 4 * i + 2];
+            pkt_data[4 * i + 0] = data[write_addr + 4 * i + 3];
+        }
+
+        boot_write(dev, write_addr, PL460_MULT_WR, pkt_data, 256);
+    }
+
+    // Fill last packet with full words
+    write_addr = pkt_nb << 8;
+    for (int i = 0; i < word_nb; i++)
+    {
+        pkt_data[4 * i + 3] = data[write_addr + 4 * i];
+        pkt_data[4 * i + 2] = data[write_addr + 4 * i + 1];
+        pkt_data[4 * i + 1] = data[write_addr + 4 * i + 2];
+        pkt_data[4 * i + 0] = data[write_addr + 4 * i + 3];
+    }
+
+    // Fill last packets with remaining bytes
+    for (int i = 0; i < 4; i++)
+    {
+        if (i < byte_nb)
+            pkt_data[4 * word_nb + 3 - i] = data[write_addr + 4 * word_nb + i];
+        else
+            pkt_data[4 * word_nb + i] = 0x00;
+    }
+
+    // Calculate last packet size then send
+    boot_write(dev, write_addr, PL460_MULT_WR, pkt_data, (word_nb + 1) * 4);
 
     return 0;
 }
 
-static int firmware_check(const struct device *dev, uint8_t *data,
-                          uint32_t size)
+static int boot_check_fw(const struct device *dev, uint8_t *data, uint32_t size)
 {
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;
+
+    // Number of full packets of 256 bytes
+    uint16_t pkt_nb = ((uint16_t)size >> 8);
+
+    // Number of full words (4 bytes) remaining
+    uint8_t word_nb = (uint8_t)((size >> 2) & 0x3f);
+
+    // Number of bytes remaining
+    uint8_t byte_nb = (uint8_t)(size & 0x03);
+
+    uint32_t read_addr;
+    uint8_t pkt_data[256], pkt_data_le[256];
+
+    // Send all full packets
+    for (int pkt_index = 0; pkt_index < pkt_nb; pkt_index++)
+    {
+        read_addr = pkt_index << 8;
+
+        boot_read(dev, read_addr, PL460_MULT_RD, pkt_data_le, 256);
+
+        for (int i = 0; i < 64; i++)
+        {
+            pkt_data[4 * i + 3] = pkt_data_le[4 * i];
+            pkt_data[4 * i + 2] = pkt_data_le[4 * i + 1];
+            pkt_data[4 * i + 1] = pkt_data_le[4 * i + 2];
+            pkt_data[4 * i + 0] = pkt_data_le[4 * i + 3];
+        }
+
+        if (memcmp(pkt_data, &data[read_addr], 256) != 0)
+        {
+            return -1;
+        }
+    }
+
+    // Read last 256 bytes packets
+    read_addr = pkt_nb << 8;
+    boot_read(dev, read_addr, PL460_MULT_RD, pkt_data_le, 256);
+
+    // Extract full words
+    for (int i = 0; i < word_nb; i++)
+    {
+        pkt_data[4 * i + 3] = pkt_data_le[4 * i];
+        pkt_data[4 * i + 2] = pkt_data_le[4 * i + 1];
+        pkt_data[4 * i + 1] = pkt_data_le[4 * i + 2];
+        pkt_data[4 * i + 0] = pkt_data_le[4 * i + 3];
+    }
+
+    // Extract remaining bytes
+    for (int i = 0; i < byte_nb; i++)
+    {
+        pkt_data[4 * word_nb + i] = pkt_data_le[4 * word_nb + 3 - i];
+    }
+
+    // Compare
+    if (memcmp(pkt_data, &data[read_addr], size & 0xff) != 0)
+    {
+        return -1;
+    }
 
     return 0;
 }
@@ -115,39 +220,90 @@ static int set_en(const struct device *dev, uint8_t state)
     return 0;
 }
 
-static int unlock_boot(const struct device *dev)
+static int boot_unlock(const struct device *dev)
 {
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;
 
-    // Union reverse endianess
+    // Union to reverse endianess
     union {
         uint32_t val;
         uint8_t tab[4];
     } mpl460a_conv;
 
     mpl460a_conv.val = PL460_BOOT_PASS_0;
-    mpl460a_write(dev, 0, PL460_BOOT_UNLOCK, mpl460a_conv.tab, 4);
+    boot_write(dev, 0, PL460_BOOT_UNLOCK, mpl460a_conv.tab, 4);
 
     mpl460a_conv.val = PL460_BOOT_PASS_1;
-    mpl460a_write(dev, 0, PL460_BOOT_UNLOCK, mpl460a_conv.tab, 4);
+    boot_write(dev, 0, PL460_BOOT_UNLOCK, mpl460a_conv.tab, 4);
+
+    return 0;
+}
+
+static int start_fw(const struct device *dev)
+{
+    struct mpl460a_data *drv_data = dev->data;
+    struct mpl460a_config *drv_config = dev->config;
+
+    int ret;
+
+    // Clean CPUWAIT to start program
+    ret = boot_write(dev, PL460_CPUWAIT_ADDR, 0x0000, 0, 0);
+    if (ret < 0)
+        return ret;
+
+    // Give MISO to M7-SPI
+    ret = boot_write(dev, 0, PL460_MISO_M7_NCLK, 0, 0);
+    if (ret < 0)
+        return ret;
+
+    return 0;
+}
+
+static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
+                         uint32_t *event_info)
+{
+    struct mpl460a_data *drv_data = dev->data;
+    struct mpl460a_config *drv_config = dev->config;
+
+    uint8_t spi_tx[4] = {(uint8_t)PL460_G3_STATUS & 0xff,
+                         (uint8_t)(PL460_G3_STATUS >> 8) & 0xff, 0x04, 0x00};
+
+    uint8_t spi_rx[12];
+
+    struct spi_buf tx_spi_buf = {.buf = spi_tx, .len = 4};
+    struct spi_buf_set tx_spi_buf_set = {.buffers = &tx_spi_buf, .count = 1};
+
+    struct spi_buf rx_spi_bufs = {.buf = spi_rx, .len = 12};
+    struct spi_buf_set rx_spi_buf_set = {.buffers = &rx_spi_bufs, .count = 1};
+
+    int ret;
+    ret = spi_transceive_dt(&drv_config->spi, &tx_spi_buf_set, &rx_spi_buf_set);
+    if (ret < 0)
+    {
+        return ret;
+    }
+
+    *event_info = (spi_rx[11] << 24) | (spi_rx[10] << 16) | (spi_rx[9] << 8) |
+                  (spi_rx[8]);
+    *timer_ref =
+        (spi_rx[7] << 24) | (spi_rx[6] << 16) | (spi_rx[5] << 8) | (spi_rx[4]);
 
     return 0;
 }
 
 // Fill API with functions
 static const struct mpl460a_api api = {
-    .mpl460a_write = &write,
-    .mpl460a_read = &read,
-    .mpl460a_firmware_write = &firmware_write,
-    .mpl460a_firmware_check = &firmware_check,
+    .mpl460a_write = &boot_write,
+    .mpl460a_read = &boot_read,
+    .mpl460a_firmware_write = &boot_write_fw,
+    .mpl460a_firmware_check = &boot_check_fw,
     .mpl460a_set_nrst = &set_nrst,
     .mpl460a_set_en = &set_en,
-    .mpl460a_unlock_boot = &unlock_boot,
+    .mpl460a_unlock_boot = &boot_unlock,
+    .mpl460a_get_events = &fw_get_events,
+    .mpl460a_start_fw = &start_fw,
 };
-
-// Create data structure
-static struct mpl460a_data data;
 
 // Init function (called at creation)
 static int mpl460a_init(const struct device *dev)
