@@ -101,21 +101,22 @@ static int boot_wait_wip(const struct device *dev)
     return 0;
 }
 
-static int boot_write_fw(const struct device *dev, uint8_t *data, uint32_t size)
+static int boot_write_fw(const struct device *dev, const uint8_t *data,
+                         uint32_t size)
 {
     int ret;
     uint32_t write_addr = 0;
+    uint16_t pkt_nb = size / 252;
+    uint32_t rem = size % 252;
     uint8_t pkt_data[252];
 
-    while (size > 0)
+    // Send full packets
+    for (uint16_t pkt_index = 0; pkt_index < pkt_nb; pkt_index++)
     {
-        // Taille du paquet : maximum 252 octets, multiple de 4
-        uint8_t pkt_size = (size >= 252) ? 252 : (uint8_t)(size & 0xFC);
-        uint8_t word_nb = pkt_size / 4;
-        uint8_t byte_nb = pkt_size % 4;
+        write_addr = (uint32_t)pkt_index * 252;
 
-        // Copier les mots complets en inversant les octets
-        for (int i = 0; i < word_nb; i++)
+        /* reverse each 4-byte word (63 words) */
+        for (int i = 0; i < 63; i++)
         {
             pkt_data[4 * i + 0] = data[write_addr + 4 * i + 3];
             pkt_data[4 * i + 1] = data[write_addr + 4 * i + 2];
@@ -123,40 +124,79 @@ static int boot_write_fw(const struct device *dev, uint8_t *data, uint32_t size)
             pkt_data[4 * i + 3] = data[write_addr + 4 * i + 0];
         }
 
-        // Copier les octets restants
-        for (int i = 0; i < byte_nb; i++)
-            pkt_data[4 * word_nb + i] = data[write_addr + 4 * word_nb + i];
-
-        ret = boot_write(dev, write_addr, PL460_MULT_WR, pkt_data, pkt_size);
+        ret = boot_write(dev, write_addr, PL460_MULT_WR, pkt_data, 252);
         if (ret < 0)
             return ret;
 
         ret = boot_wait_wip(dev);
         if (ret < 0)
             return ret;
-
-        write_addr += pkt_size;
-        size -= pkt_size;
     }
+
+    /* last partial chunk */
+    if (rem == 0)
+        return 0;
+
+    write_addr = (uint32_t)pkt_nb * 252;
+    uint8_t word_nb = rem >> 2;   /* full words in remaining */
+    uint8_t byte_nb = rem & 0x03; /* leftover bytes (0..3) */
+
+    /* copy full words */
+    for (int i = 0; i < word_nb; i++)
+    {
+        pkt_data[4 * i + 0] = data[write_addr + 4 * i + 3];
+        pkt_data[4 * i + 1] = data[write_addr + 4 * i + 2];
+        pkt_data[4 * i + 2] = data[write_addr + 4 * i + 1];
+        pkt_data[4 * i + 3] = data[write_addr + 4 * i + 0];
+    }
+
+    size_t last_pkt_size = word_nb * 4;
+
+    if (byte_nb)
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            if (i < byte_nb)
+                pkt_data[4 * word_nb + 3 - i] =
+                    data[write_addr + 4 * word_nb + i];
+            else
+                pkt_data[4 * word_nb + 3 - i] = 0x00;
+        }
+        last_pkt_size = (word_nb + 1) * 4;
+    }
+
+    ret = boot_write(dev, write_addr, PL460_MULT_WR, pkt_data,
+                     (uint8_t)last_pkt_size);
+    if (ret < 0)
+        return ret;
+
+    ret = boot_wait_wip(dev);
+    if (ret < 0)
+        return ret;
 
     return 0;
 }
 
-static int boot_check_fw(const struct device *dev, uint8_t *data, uint32_t size)
+static int boot_check_fw(const struct device *dev, const uint8_t *data,
+                         uint32_t size)
 {
     uint32_t read_addr = 0;
-    uint8_t pkt_data[252], pkt_data_le[252];
+    uint16_t pkt_nb = size / 252;
+    uint32_t rem = size % 252;
+    uint8_t pkt_data[252];
+    uint8_t pkt_data_le[252];
+    int ret;
 
-    while (size > 0)
+    /* full packets */
+    for (uint16_t pkt_index = 0; pkt_index < pkt_nb; pkt_index++)
     {
-        uint8_t pkt_size = (size >= 252) ? 252 : (uint8_t)(size & 0xFC);
-        uint8_t word_nb = pkt_size / 4;
-        uint8_t byte_nb = pkt_size % 4;
+        read_addr = (uint32_t)pkt_index * 252;
 
-        boot_read(dev, read_addr, PL460_MULT_RD, pkt_data_le, pkt_size);
+        ret = boot_read(dev, read_addr, PL460_MULT_RD, pkt_data_le, 252);
+        if (ret < 0)
+            return ret;
 
-        // Convertir les mots (reverse des octets)
-        for (int i = 0; i < word_nb; i++)
+        for (int i = 0; i < 63; i++)
         {
             pkt_data[4 * i + 0] = pkt_data_le[4 * i + 3];
             pkt_data[4 * i + 1] = pkt_data_le[4 * i + 2];
@@ -164,20 +204,52 @@ static int boot_check_fw(const struct device *dev, uint8_t *data, uint32_t size)
             pkt_data[4 * i + 3] = pkt_data_le[4 * i + 0];
         }
 
-        // Copier les octets restants
-        for (int i = 0; i < byte_nb; i++)
-            pkt_data[4 * word_nb + i] = pkt_data_le[4 * word_nb + i];
-
-        if (memcmp(pkt_data, &data[read_addr], pkt_size) != 0)
-            return -1;
-
-        read_addr += pkt_size;
-        size -= pkt_size;
+        if (memcmp(pkt_data, &data[read_addr], 252) != 0)
+            return -EIO;
     }
+
+    if (rem == 0)
+        return 0;
+
+    read_addr = (uint32_t)pkt_nb * 252;
+    uint8_t word_nb = rem >> 2;
+    uint8_t byte_nb = rem & 0x03;
+    size_t read_len = word_nb * 4;
+
+    if (byte_nb)
+    {
+        /* we wrote an extra padded word, read it too */
+        read_len = (word_nb + 1) * 4;
+    }
+
+    ret = boot_read(dev, read_addr, PL460_MULT_RD, pkt_data_le,
+                    (uint8_t)read_len);
+    if (ret < 0)
+        return ret;
+
+    /* reconstruct words */
+    for (int i = 0; i < (int)word_nb; i++)
+    {
+        pkt_data[4 * i + 0] = pkt_data_le[4 * i + 3];
+        pkt_data[4 * i + 1] = pkt_data_le[4 * i + 2];
+        pkt_data[4 * i + 2] = pkt_data_le[4 * i + 1];
+        pkt_data[4 * i + 3] = pkt_data_le[4 * i + 0];
+    }
+
+    if (byte_nb)
+    {
+        /* leftover bytes were stored as: pkt_data_le[4*word_nb + 3 - i],
+         * restore them to positions 0..byte_nb-1 */
+        for (int i = 0; i < byte_nb; i++)
+            pkt_data[4 * word_nb + i] = pkt_data_le[4 * word_nb + 3 - i];
+    }
+
+    /* compare only the original remaining bytes (rem) */
+    if (memcmp(pkt_data, &data[read_addr], rem) != 0)
+        return -EIO;
 
     return 0;
 }
-
 static int set_nrst(const struct device *dev, uint8_t state)
 {
     struct mpl460a_data *drv_data = dev->data;
