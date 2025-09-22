@@ -180,11 +180,10 @@ static int boot_write_fw(const struct device *dev, const uint8_t *data,
 static int boot_check_fw(const struct device *dev, const uint8_t *data,
                          const uint32_t size)
 {
-    uint32_t read_addr = 0;
+    uint32_t read_addr;
     uint16_t pkt_nb = size / 252;
     uint32_t rem = size % 252;
-    uint8_t pkt_data[252];
-    uint8_t pkt_data_le[252];
+    uint8_t pkt_data[252], pkt_data_le[252];
     int ret;
 
     /* full packets */
@@ -212,20 +211,17 @@ static int boot_check_fw(const struct device *dev, const uint8_t *data,
         return 0;
 
     read_addr = (uint32_t)pkt_nb * 252;
-    uint8_t word_nb = rem >> 2;
 
+    uint8_t word_nb = rem >> 2;
     if (rem & 0x03)
         word_nb++;
 
-    size_t read_len = word_nb * 4;
-
-    ret = boot_read(dev, read_addr, PL460_MULT_RD, pkt_data_le,
-                    (uint8_t)read_len);
+    ret = boot_read(dev, read_addr, PL460_MULT_RD, pkt_data_le, word_nb * 4);
     if (ret < 0)
         return ret;
 
     /* reconstruct words */
-    for (int i = 0; i < (int)word_nb; i++)
+    for (int i = 0; i < word_nb; i++)
     {
         pkt_data[4 * i + 0] = pkt_data_le[4 * i + 3];
         pkt_data[4 * i + 1] = pkt_data_le[4 * i + 2];
@@ -233,12 +229,12 @@ static int boot_check_fw(const struct device *dev, const uint8_t *data,
         pkt_data[4 * i + 3] = pkt_data_le[4 * i + 0];
     }
 
-    /* compare only the original remaining bytes (rem) */
-    if (memcmp(pkt_data, &data[read_addr], rem) != 0)
+    if (memcmp(pkt_data, &data[read_addr], word_nb * 4) != 0)
         return -EIO;
 
     return 0;
 }
+
 static int set_nrst(const struct device *dev, uint8_t state)
 {
     struct mpl460a_data *drv_data = dev->data;
