@@ -229,7 +229,7 @@ static int boot_check_fw(const struct device *dev, const uint8_t *data,
         pkt_data[4 * i + 3] = pkt_data_le[4 * i + 0];
     }
 
-    if (memcmp(pkt_data, &data[read_addr], word_nb * 4) != 0)
+    if (memcmp(pkt_data, &data[read_addr], rem) != 0)
         return -EIO;
 
     return 0;
