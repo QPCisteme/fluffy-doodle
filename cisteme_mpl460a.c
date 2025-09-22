@@ -75,6 +75,17 @@ static int boot_read(const struct device *dev, uint32_t addr, uint16_t cmd,
     return 0;
 }
 
+static bool boot_wip(const struct device *dev)
+{
+    uint8_t rx_data[4];
+    boot_read(dev, 0, PL460_RD_BOOT_STATUS, rx_data, 4);
+
+    if (rx_data[0] != 0)
+        return true;
+    else
+        return false
+}
+
 static int boot_write_fw(const struct device *dev, uint8_t *data, uint32_t size)
 {
     struct mpl460a_data *drv_data = dev->data;
@@ -105,6 +116,17 @@ static int boot_write_fw(const struct device *dev, uint8_t *data, uint32_t size)
         }
 
         boot_write(dev, write_addr, PL460_MULT_WR, pkt_data, 256);
+
+        uint8_t timeout = 255;
+        while (boot_wip(dev))
+        {
+            k_usleep(100);
+            if (timeout-- == 0)
+            {
+                printk("FW Write Timeout\r\n");
+                return -1;
+            }
+        }
     }
 
     // Fill last packet with full words
