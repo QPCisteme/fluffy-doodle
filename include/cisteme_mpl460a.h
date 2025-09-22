@@ -29,8 +29,8 @@ typedef int (*mpl460a_boot_cmd_t)(const struct device *dev, uint32_t addr,
 typedef int (*mpl460a_fw_event_cmd_t)(const struct device *dev,
                                       uint32_t *timer_ref,
                                       uint32_t *event_info);
-typedef int (*mpl460a_boot_fw_cmd_t)(const struct device *dev, uint8_t *data,
-                                     uint32_t size);
+typedef int (*mpl460a_boot_fw_cmd_t)(const struct device *dev,
+                                     const uint8_t *data, const uint32_t size);
 typedef int (*mpl460a_set_cmd_t)(const struct device *dev, uint8_t state);
 typedef int (*mpl460a_cmd_t)(const struct device *dev);
 
@@ -83,11 +83,12 @@ static inline int z_impl_mpl460a_boot_read(const struct device *dev,
     return api->mpl460a_boot_read(dev, addr, cmd, data, size);
 }
 
-__syscall int mpl460a_boot_write_fw(const struct device *dev, uint8_t *data,
-                                    uint32_t size);
+__syscall int mpl460a_boot_write_fw(const struct device *dev,
+                                    const uint8_t *data, const uint32_t size);
 
 static inline int z_impl_mpl460a_boot_write_fw(const struct device *dev,
-                                               uint8_t *data, uint32_t size)
+                                               const uint8_t *data,
+                                               const uint32_t size)
 {
     const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
     if (api->mpl460a_boot_write_fw == NULL)
@@ -97,11 +98,12 @@ static inline int z_impl_mpl460a_boot_write_fw(const struct device *dev,
     return api->mpl460a_boot_write_fw(dev, data, size);
 }
 
-__syscall int mpl460a_boot_check_fw(const struct device *dev, uint8_t *data,
-                                    uint32_t size);
+__syscall int mpl460a_boot_check_fw(const struct device *dev,
+                                    const uint8_t *data, const uint32_t size);
 
 static inline int z_impl_mpl460a_boot_check_fw(const struct device *dev,
-                                               uint8_t *data, uint32_t size)
+                                               const uint8_t *data,
+                                               const uint32_t size)
 {
     const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
     if (api->mpl460a_boot_check_fw == NULL)

@@ -102,7 +102,7 @@ static int boot_wait_wip(const struct device *dev)
 }
 
 static int boot_write_fw(const struct device *dev, const uint8_t *data,
-                         uint32_t size)
+                         const uint32_t size)
 {
     int ret;
     uint32_t write_addr = 0;
@@ -178,7 +178,7 @@ static int boot_write_fw(const struct device *dev, const uint8_t *data,
 }
 
 static int boot_check_fw(const struct device *dev, const uint8_t *data,
-                         uint32_t size)
+                         const uint32_t size)
 {
     uint32_t read_addr = 0;
     uint16_t pkt_nb = size / 252;
