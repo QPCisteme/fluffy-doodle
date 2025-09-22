@@ -109,16 +109,16 @@ static int boot_write_fw(const struct device *dev, uint8_t *data, uint32_t size)
     int ret;
 
     // Number of full packets of 256 bytes
-    uint16_t pkt_nb = ((uint16_t)size >> 8);
+    uint16_t pkt_nb = size / 252;
 
     // Number of full words (4 bytes) remaining
-    uint8_t word_nb = (uint8_t)((size >> 2) & 0x3f);
+    uint8_t word_nb = (size % 252) >> 2;
 
     // Number of bytes remaining
-    uint8_t byte_nb = (uint8_t)(size & 0x03);
+    uint8_t byte_nb = (size % 252) & 0x03;
 
     uint32_t write_addr;
-    uint8_t pkt_data[256];
+    uint8_t pkt_data[252];
 
     // Send all full packets
     for (int pkt_index = 0; pkt_index < pkt_nb; pkt_index++)
@@ -132,7 +132,7 @@ static int boot_write_fw(const struct device *dev, uint8_t *data, uint32_t size)
             pkt_data[4 * i + 0] = data[write_addr + 4 * i + 3];
         }
 
-        ret = boot_write(dev, write_addr, PL460_MULT_WR, pkt_data, 256);
+        ret = boot_write(dev, write_addr, PL460_MULT_WR, pkt_data, 252);
         if (ret < 0)
             return ret;
 
@@ -167,6 +167,10 @@ static int boot_write_fw(const struct device *dev, uint8_t *data, uint32_t size)
     if (ret < 0)
         return ret;
 
+    ret = boot_wait_wip(dev);
+    if (ret < 0)
+        return ret;
+
     return 0;
 }
 
@@ -176,23 +180,23 @@ static int boot_check_fw(const struct device *dev, uint8_t *data, uint32_t size)
     struct mpl460a_config *drv_config = dev->config;
 
     // Number of full packets of 256 bytes
-    uint16_t pkt_nb = ((uint16_t)size >> 8);
+    uint16_t pkt_nb = size / 252;
 
     // Number of full words (4 bytes) remaining
-    uint8_t word_nb = (uint8_t)((size >> 2) & 0x3f);
+    uint8_t word_nb = (size % 252) >> 2;
 
     // Number of bytes remaining
-    uint8_t byte_nb = (uint8_t)(size & 0x03);
+    uint8_t byte_nb = (size % 252) & 0x03;
 
     uint32_t read_addr;
-    uint8_t pkt_data[256], pkt_data_le[256];
+    uint8_t pkt_data[252], pkt_data_le[252];
 
     // Send all full packets
     for (int pkt_index = 0; pkt_index < pkt_nb; pkt_index++)
     {
         read_addr = pkt_index << 8;
 
-        boot_read(dev, read_addr, PL460_MULT_RD, pkt_data_le, 256);
+        boot_read(dev, read_addr, PL460_MULT_RD, pkt_data_le, 252);
 
         for (int i = 0; i < 64; i++)
         {
@@ -202,7 +206,7 @@ static int boot_check_fw(const struct device *dev, uint8_t *data, uint32_t size)
             pkt_data[4 * i + 0] = pkt_data_le[4 * i + 3];
         }
 
-        if (memcmp(pkt_data, &data[read_addr], 256) != 0)
+        if (memcmp(pkt_data, &data[read_addr], 252) != 0)
         {
             return -1;
         }
@@ -210,7 +214,7 @@ static int boot_check_fw(const struct device *dev, uint8_t *data, uint32_t size)
 
     // Read last 256 bytes packets
     read_addr = pkt_nb << 8;
-    boot_read(dev, read_addr, PL460_MULT_RD, pkt_data_le, 256);
+    boot_read(dev, read_addr, PL460_MULT_RD, pkt_data_le, 252);
 
     // Extract full words
     for (int i = 0; i < word_nb; i++)
