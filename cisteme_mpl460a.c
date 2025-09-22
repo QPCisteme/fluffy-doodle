@@ -225,7 +225,7 @@ static int boot_check_fw(const struct device *dev, const uint8_t *data,
     }
 
     for (int i = 0; i < (rem & 0x03); i++)
-        if (pkt_data[4 * word_nb + 3 - j] != data[read_addr + 4 * word_nb + j])
+        if (pkt_data[4 * word_nb + 3 - i] != data[read_addr + 4 * word_nb + i])
             err++;
 
     return err;
