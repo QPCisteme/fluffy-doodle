@@ -106,129 +106,57 @@ static int boot_write_fw(const struct device *dev, const uint8_t *data,
 {
     int ret;
     uint32_t write_addr = 0;
-    uint16_t pkt_nb = size / 252;
-    uint32_t rem = size % 252;
+    uint8_t pkt_size;
     uint8_t pkt_data[252];
 
-    // Send full packets
-    for (uint16_t pkt_index = 0; pkt_index < pkt_nb; pkt_index++)
+    while (size > 0)
     {
-        write_addr = (uint32_t)pkt_index * 252;
+        pkt_size = (size > 252 ? 252 : size);
 
-        /* reverse each 4-byte word (63 words) */
-        for (int i = 0; i < 63; i++)
-        {
-            pkt_data[4 * i + 0] = data[write_addr + 4 * i + 3];
-            pkt_data[4 * i + 1] = data[write_addr + 4 * i + 2];
-            pkt_data[4 * i + 2] = data[write_addr + 4 * i + 1];
-            pkt_data[4 * i + 3] = data[write_addr + 4 * i + 0];
-        }
-
-        ret = boot_write(dev, write_addr, PL460_MULT_WR, pkt_data, 252);
+        ret = boot_write(dev, write_addr, PL460_MULT_WR, &data[write_addr],
+                         pkt_size);
         if (ret < 0)
             return ret;
 
         ret = boot_wait_wip(dev);
         if (ret < 0)
             return ret;
+
+        write_addr += pkt_size;
+        size -= pkt_size;
     }
-
-    /* last partial chunk */
-    if (rem == 0)
-        return 0;
-
-    write_addr = (uint32_t)pkt_nb * 252;
-    uint8_t word_nb = rem >> 2;   /* full words in remaining */
-    uint8_t byte_nb = rem & 0x03; /* leftover bytes (0..3) */
-
-    /* copy full words */
-    for (int i = 0; i < word_nb; i++)
-    {
-        pkt_data[4 * i + 0] = data[write_addr + 4 * i + 3];
-        pkt_data[4 * i + 1] = data[write_addr + 4 * i + 2];
-        pkt_data[4 * i + 2] = data[write_addr + 4 * i + 1];
-        pkt_data[4 * i + 3] = data[write_addr + 4 * i + 0];
-    }
-
-    size_t last_pkt_size = word_nb * 4;
-
-    if (byte_nb)
-    {
-        for (int i = 0; i < 4; i++)
-        {
-            if (i < byte_nb)
-                pkt_data[4 * word_nb + 3 - i] =
-                    data[write_addr + 4 * word_nb + i];
-            else
-                pkt_data[4 * word_nb + 3 - i] = 0x00;
-        }
-        last_pkt_size = (word_nb + 1) * 4;
-    }
-
-    ret = boot_write(dev, write_addr, PL460_MULT_WR, pkt_data,
-                     (uint8_t)last_pkt_size);
-    if (ret < 0)
-        return ret;
-
-    ret = boot_wait_wip(dev);
-    if (ret < 0)
-        return ret;
 
     return 0;
 }
 
-static int boot_check_fw(const struct device *dev, const uint8_t *data,
+static int boot_write_fw(const struct device *dev, const uint8_t *data,
                          const uint32_t size)
 {
-    uint32_t read_addr;
-    uint16_t pkt_nb = size / 252;
-    uint32_t rem = size % 252;
-    uint8_t pkt_data[252];
     int ret;
-    int err = 0;
+    uint32_t read_addr = 0;
+    uint8_t pkt_size;
+    uint8_t pkt_data[252];
 
-    /* full packets */
-    for (uint16_t pkt_index = 0; pkt_index < pkt_nb; pkt_index++)
+    while (size > 0)
     {
-        read_addr = (uint32_t)pkt_index * 252;
+        pkt_size = (size > 252 ? 252 : size);
 
-        ret = boot_read(dev, read_addr, PL460_MULT_RD, pkt_data, 252);
+        ret = boot_read(dev, write_addr, PL460_MULT_RD, pkt_data, pkt_size);
         if (ret < 0)
             return ret;
 
-        for (int i = 0; i < 63; i++)
-        {
-            for (int j = 0; j < 4; j++)
-                if (pkt_data[4 * i + 3 - j] != data[read_addr + 4 * i + j])
-                    err++;
-        }
+        ret = boot_wait_wip(dev);
+        if (ret < 0)
+            return ret;
+
+        if (memcmp(pkt_data, &data[read_addr], pkt_size) != 0)
+            return -1;
+
+        read_addr += pkt_size;
+        size -= pkt_size;
     }
 
-    if (rem == 0)
-        return 0;
-
-    read_addr = (uint32_t)pkt_nb * 252;
-
-    uint8_t word_nb = rem >> 2;
-
-    ret = boot_read(dev, read_addr, PL460_MULT_RD, pkt_data,
-                    rem & 0x03 ? (word_nb + 1) * 4 : word_nb * 4);
-    if (ret < 0)
-        return ret;
-
-    /* reconstruct words */
-    for (int i = 0; i < word_nb; i++)
-    {
-        for (int j = 0; j < 4; j++)
-            if (pkt_data[4 * i + 3 - j] != data[read_addr + 4 * i + j])
-                err++;
-    }
-
-    for (int i = 0; i < (rem & 0x03); i++)
-        if (pkt_data[4 * word_nb + 3 - i] != data[read_addr + 4 * word_nb + i])
-            err++;
-
-    return err;
+    return 0;
 }
 
 static int set_nrst(const struct device *dev, uint8_t state)
