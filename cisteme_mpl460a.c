@@ -141,7 +141,7 @@ static int boot_check_fw(const struct device *dev, const uint8_t *data,
     {
         pkt_size = (max_addr > 252 ? 252 : max_addr);
 
-        ret = boot_read(dev, write_addr, PL460_MULT_RD, pkt_data, pkt_size);
+        ret = boot_read(dev, read_addr, PL460_MULT_RD, pkt_data, pkt_size);
         if (ret < 0)
             return ret;
 
