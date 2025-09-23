@@ -118,10 +118,10 @@ static int boot_write_fw(const struct device *dev, const uint8_t *data,
         /* reverse each 4-byte word (63 words) */
         for (int i = 0; i < 63; i++)
         {
-            pkt_data[4 * i + 0] = data[write_addr + 4 * i + 0];
-            pkt_data[4 * i + 1] = data[write_addr + 4 * i + 1];
-            pkt_data[4 * i + 2] = data[write_addr + 4 * i + 2];
-            pkt_data[4 * i + 3] = data[write_addr + 4 * i + 3];
+            pkt_data[4 * i + 0] = data[write_addr + 4 * i + 3];
+            pkt_data[4 * i + 1] = data[write_addr + 4 * i + 2];
+            pkt_data[4 * i + 2] = data[write_addr + 4 * i + 1];
+            pkt_data[4 * i + 3] = data[write_addr + 4 * i + 0];
         }
 
         ret = boot_write(dev, write_addr, PL460_MULT_WR, pkt_data, 252);
@@ -144,10 +144,10 @@ static int boot_write_fw(const struct device *dev, const uint8_t *data,
     /* copy full words */
     for (int i = 0; i < word_nb; i++)
     {
-        pkt_data[4 * i + 0] = data[write_addr + 4 * i + 0];
-        pkt_data[4 * i + 1] = data[write_addr + 4 * i + 1];
-        pkt_data[4 * i + 2] = data[write_addr + 4 * i + 2];
-        pkt_data[4 * i + 3] = data[write_addr + 4 * i + 3];
+        pkt_data[4 * i + 0] = data[write_addr + 4 * i + 3];
+        pkt_data[4 * i + 1] = data[write_addr + 4 * i + 2];
+        pkt_data[4 * i + 2] = data[write_addr + 4 * i + 1];
+        pkt_data[4 * i + 3] = data[write_addr + 4 * i + 0];
     }
 
     size_t last_pkt_size = word_nb * 4;
@@ -157,9 +157,10 @@ static int boot_write_fw(const struct device *dev, const uint8_t *data,
         for (int i = 0; i < 4; i++)
         {
             if (i < byte_nb)
-                pkt_data[4 * word_nb + i] = data[write_addr + 4 * word_nb + i];
+                pkt_data[4 * word_nb + 3 - i] =
+                    data[write_addr + 4 * word_nb + i];
             else
-                pkt_data[4 * word_nb + i] = 0x00;
+                pkt_data[4 * word_nb + 3 - i] = 0x00;
         }
         last_pkt_size = (word_nb + 1) * 4;
     }
@@ -198,7 +199,7 @@ static int boot_check_fw(const struct device *dev, const uint8_t *data,
         for (int i = 0; i < 63; i++)
         {
             for (int j = 0; j < 4; j++)
-                if (pkt_data[4 * i + j] != data[read_addr + 4 * i + j])
+                if (pkt_data[4 * i + 3 - j] != data[read_addr + 4 * i + j])
                     err++;
         }
     }
@@ -219,12 +220,12 @@ static int boot_check_fw(const struct device *dev, const uint8_t *data,
     for (int i = 0; i < word_nb; i++)
     {
         for (int j = 0; j < 4; j++)
-            if (pkt_data[4 * i + j] != data[read_addr + 4 * i + j])
+            if (pkt_data[4 * i + 3 - j] != data[read_addr + 4 * i + j])
                 err++;
     }
 
     for (int i = 0; i < (rem & 0x03); i++)
-        if (pkt_data[4 * word_nb + i] != data[read_addr + 4 * word_nb + i])
+        if (pkt_data[4 * word_nb + 3 - i] != data[read_addr + 4 * word_nb + i])
             err++;
 
     return err;
