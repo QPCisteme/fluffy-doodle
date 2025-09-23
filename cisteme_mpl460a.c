@@ -132,7 +132,7 @@ static int boot_write_fw(const struct device *dev, const uint8_t *data,
 static int boot_check_fw(const struct device *dev, const uint8_t *data,
                          const uint32_t size)
 {
-    int ret, err;
+    int ret, err = 0;
     uint32_t read_addr = 0, max_addr = size;
     uint8_t pkt_size;
     uint8_t pkt_data[252];
