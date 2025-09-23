@@ -132,7 +132,7 @@ static int boot_write_fw(const struct device *dev, const uint8_t *data,
 static int boot_check_fw(const struct device *dev, const uint8_t *data,
                          const uint32_t size)
 {
-    int ret;
+    int ret, err;
     uint32_t read_addr = 0, max_addr = size;
     uint8_t pkt_size;
     uint8_t pkt_data[252];
@@ -149,14 +149,19 @@ static int boot_check_fw(const struct device *dev, const uint8_t *data,
         if (ret < 0)
             return ret;
 
-        if (memcmp(pkt_data, &data[read_addr], pkt_size) != 0)
-            return -1;
+        for (int i = 0; i < pkt_size; i++)
+        {
+            if (pkt_data[i] != data[read_addr + i])
+            {
+                err++;
+            }
+        }
 
         read_addr += pkt_size;
         max_addr -= pkt_size;
     }
 
-    return 0;
+    return err;
 }
 
 static int set_nrst(const struct device *dev, uint8_t state)
