@@ -218,6 +218,8 @@ static int start_fw(const struct device *dev)
     if (ret < 0)
         return ret;
 
+    k_msleep(10);
+
     // Give MISO to M7-SPI
     ret = boot_write(dev, 0, PL460_MISO_M7_NCLK, 0, 0);
     if (ret < 0)
