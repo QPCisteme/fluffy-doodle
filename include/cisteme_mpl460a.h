@@ -40,14 +40,14 @@ __subsystem struct mpl460a_api
     // General
     mpl460a_set_cmd_t mpl460a_set_nrst;
     mpl460a_set_cmd_t mpl460a_set_en;
-    mpl460a_cmd_t mpl460a_start_fw;
+    mpl460a_cmd_t mpl460a_boot_disable;
 
     // Bootloader commands
     mpl460a_boot_cmd_t mpl460a_boot_write;
     mpl460a_boot_cmd_t mpl460a_boot_read;
     mpl460a_boot_fw_cmd_t mpl460a_boot_write_fw;
     mpl460a_boot_fw_cmd_t mpl460a_boot_check_fw;
-    mpl460a_cmd_t mpl460a_boot_unlock;
+    mpl460a_cmd_t mpl460a_boot_enable;
 
     // Firmware commands
     mpl460a_fw_event_cmd_t mpl460a_get_events;
@@ -138,16 +138,16 @@ static inline int z_impl_mpl460a_set_en(const struct device *dev, uint8_t state)
     return api->mpl460a_set_en(dev, state);
 }
 
-__syscall int mpl460a_boot_unlock(const struct device *dev);
+__syscall int mpl460a_boot_enable(const struct device *dev);
 
-static inline int z_impl_mpl460a_boot_unlock(const struct device *dev)
+static inline int z_impl_mpl460a_boot_enable(const struct device *dev)
 {
     const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
-    if (api->mpl460a_boot_unlock == NULL)
+    if (api->mpl460a_boot_enable == NULL)
     {
         return -ENOSYS;
     }
-    return api->mpl460a_boot_unlock(dev);
+    return api->mpl460a_boot_enable(dev);
 }
 
 __syscall int mpl460a_get_events(const struct device *dev, uint32_t *timer_ref,
@@ -165,16 +165,16 @@ static inline int z_impl_mpl460a_get_events(const struct device *dev,
     return api->mpl460a_get_events(dev, timer_ref, events_info);
 }
 
-__syscall int mpl460a_start_fw(const struct device *dev);
+__syscall int mpl460a_boot_disable(const struct device *dev);
 
-static inline int z_impl_mpl460a_start_fw(const struct device *dev)
+static inline int z_impl_mpl460a_boot_disable(const struct device *dev)
 {
     const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
-    if (api->mpl460a_start_fw == NULL)
+    if (api->mpl460a_boot_disable == NULL)
     {
         return -ENOSYS;
     }
-    return api->mpl460a_start_fw(dev);
+    return api->mpl460a_boot_disable(dev);
 }
 
 // Include syscall

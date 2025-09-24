@@ -186,7 +186,7 @@ static int set_en(const struct device *dev, uint8_t state)
     return 0;
 }
 
-static int boot_unlock(const struct device *dev)
+static int boot_enable(const struct device *dev)
 {
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;
@@ -204,20 +204,27 @@ static int boot_unlock(const struct device *dev)
     boot_write(dev, 0, PL460_BOOT_UNLOCK, mpl460a_conv.tab, 4);
 
     mpl460a_conv.val = 0x01010001;
-    boot_write(dev, PL460_MISCR, PL460_MULT_WR, mpl460a_conv.tab, 4);
+    boot_write(dev, PL460_MISCR, PL460_WR, mpl460a_conv.tab, 4);
 
     return 0;
 }
 
-static int start_fw(const struct device *dev)
+static int boot_disable(const struct device *dev)
 {
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;
 
     int ret;
 
+    // Union to reverse endianess
+    union {
+        uint32_t val;
+        uint8_t tab[4];
+    } mpl460a_conv;
+
     // Clean CPUWAIT to start program
-    ret = boot_write(dev, PL460_MISCR, 0x0000, 0, 0);
+    mpl460a_conv.val = 0x01010000;
+    ret = boot_write(dev, PL460_MISCR, PL460_WR, mpl460a_conv.tab, 4);
     if (ret < 0)
         return ret;
 
@@ -271,9 +278,9 @@ static const struct mpl460a_api api = {
     .mpl460a_boot_check_fw = &boot_check_fw,
     .mpl460a_set_nrst = &set_nrst,
     .mpl460a_set_en = &set_en,
-    .mpl460a_boot_unlock = &boot_unlock,
+    .mpl460a_boot_enable = &boot_enable,
     .mpl460a_get_events = &fw_get_events,
-    .mpl460a_start_fw = &start_fw,
+    .mpl460a_boot_disable = &boot_disable,
 };
 
 // Init function (called at creation)
