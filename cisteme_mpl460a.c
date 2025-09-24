@@ -264,7 +264,7 @@ static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
 
     memcpy((uint8_t *)event_info, &spi_rx[4], 4);
     memcpy((uint8_t *)timer_ref, &spi_rx[8], 4);
-    uint16_t header = (spi_rx[1] << 8) | (spi_rx[0]);
+    uint16_t header = (spi_rx[0] << 8) | (spi_rx[1]);
 
     if (header == PL460_FW_HEADER)
         return 0;
