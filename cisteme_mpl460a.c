@@ -262,12 +262,14 @@ static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
         return ret;
     }
 
-    *event_info =
-        (spi_rx[0] << 24) | (spi_rx[1] << 16) | (spi_rx[2] << 8) | (spi_rx[3]);
-    *timer_ref =
-        (spi_rx[4] << 24) | (spi_rx[5] << 16) | (spi_rx[6] << 8) | (spi_rx[7]);
+    memcpy((uint8_t *)event_info, &spi_rx[4], 4);
+    memcpy((uint8_t *)timer_ref, &spi_rx[8], 4);
+    uint16_t header = (spi_rx[1] << 8) | (spi_rx[0]);
 
-    return 0;
+    if (header == PL460_FW_HEADER)
+        return 0;
+    else
+        return -1;
 }
 
 // Fill API with functions

@@ -25,6 +25,8 @@
 
 /* CONSTANTS =================================================================*/
 
+#define PL460_BOOT_HEADER 0x5634
+#define PL460_FW_HEADER 0x1122
 #define PL460_BOOT_PASS_0 0x5345ACBA
 #define PL460_BOOT_PASS_1 0xACBA5345
 
