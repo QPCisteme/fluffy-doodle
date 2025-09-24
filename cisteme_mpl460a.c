@@ -203,6 +203,9 @@ static int boot_unlock(const struct device *dev)
     mpl460a_conv.val = PL460_BOOT_PASS_1;
     boot_write(dev, 0, PL460_BOOT_UNLOCK, mpl460a_conv.tab, 4);
 
+    mpl460a_conv.val = 0x01010001;
+    boot_write(dev, PL460_MISCR, PL460_MULT_WR, mpl460a_conv.tab, 4);
+
     return 0;
 }
 
@@ -214,7 +217,7 @@ static int start_fw(const struct device *dev)
     int ret;
 
     // Clean CPUWAIT to start program
-    ret = boot_write(dev, PL460_CPUWAIT_ADDR, 0x0000, 0, 0);
+    ret = boot_write(dev, PL460_MISCR, 0x0000, 0, 0);
     if (ret < 0)
         return ret;
 

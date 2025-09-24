@@ -28,7 +28,7 @@
 #define PL460_BOOT_PASS_0 0x5345ACBA
 #define PL460_BOOT_PASS_1 0xACBA5345
 
-#define PL460_CPUWAIT_ADDR 0x400E1800
+#define PL460_MISCR 0x400E1800
 
 /* G3 Memory =================================================================*/
 #define PL460_G3_STATUS 0x0000
