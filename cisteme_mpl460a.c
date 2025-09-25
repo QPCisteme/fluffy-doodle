@@ -405,6 +405,33 @@ static int tx_enable(const struct device *dev)
     return 0;
 }
 
+static int read_PIB(const struct device *dev, uint16_t addr)
+{
+    struct mpl460a_data *drv_data = dev->data;
+    struct mpl460a_config *drv_config = dev->config;
+
+    uint8_t tx_data[10] = {0x06, 0x00, 0x03, 0x80, 0x00,
+                           0x80, 0x45, 0x40, 0x02, 0x00};
+
+    struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = 8};
+    struct spi_buf_set tx_spi_data_set = {.buffers = &tx_spi_buf_data,
+                                          .count = 1};
+
+    int ret = spi_write_dt(&drv_config->spi, &tx_spi_data_set);
+    if (ret < 0)
+        return ret;
+
+    uint8_t tx2 = {0x00, 0x06, 0x01, 0x80, 0x00, 0x80};
+    memcpy(tx_data, tx2, 6);
+    tx_spi_buf_data.len = 6;
+
+    ret = spi_write_dt(&drv_config->spi, &tx_spi_data_set);
+    if (ret < 0)
+        return ret;
+
+    return 0;
+}
+
 // Fill API with functions
 static const struct mpl460a_api api = {
     .mpl460a_boot_write = &boot_write,
