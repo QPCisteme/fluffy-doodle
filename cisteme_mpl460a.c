@@ -276,14 +276,14 @@ static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
 
 static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
 {
-    gpio_pin_set_dt(&drv_config->txen, 1);
-
     // Limit packet length
     if (len > 64)
         return -1;
 
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;
+
+    gpio_pin_set_dt(&drv_config->txen, 1);
 
     CENA_TX_PARAM params;
 
