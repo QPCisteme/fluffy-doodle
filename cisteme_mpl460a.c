@@ -385,7 +385,7 @@ static int tx_enable(const struct device *dev)
     uint8_t tx_data[10] = {0x06, 0x00, 0x03, 0x80, 0x00,
                            0x80, 0x45, 0x40, 0x02, 0x00};
 
-    struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = 8};
+    struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = 10};
     struct spi_buf_set tx_spi_data_set = {.buffers = &tx_spi_buf_data,
                                           .count = 1};
 
