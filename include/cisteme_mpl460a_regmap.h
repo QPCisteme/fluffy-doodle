@@ -1,5 +1,3 @@
-#include <zephyr/sys/util>
-
 /* COMMANDS ==================================================================*/
 #define PL460_WR 0x0000
 #define PL460_MULT_WR 0x0001
