@@ -278,18 +278,20 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
     if (len > 64)
         return -1;
 
-    CENA_TX_PARAM.timeIni = 0;
-    CENA_TX_PARAM.dataLength = len + 2; // payload + FCS
-    memset(CENA_TX_PARAM.preemphasis, 0, 24);
-    CENA_TX_PARAM.toneMap[0] = 0x3F;
-    memset(CENA_TX_PARAM.toneMap + 1, 0, 2);
-    CENA_TX_PARAM.mode = 3;
-    CENA_TX_PARAM.attenuation = 0;
-    CENA_TX_PARAM.modType = 0;
-    CENA_TX_PARAM.modScheme = 0;
-    CENA_TX_PARAM.pdc = 0;
-    CENA_TX_PARAM.rs2Blocks = 0;
-    CENA_TX_PARAM.delimiterType = 0;
+    CENA_TX_PARAM params;
+
+    params.timeIni = 0;
+    params.dataLength = len + 2; // payload + FCS
+    memset(params.preemphasis, 0, 24);
+    params.toneMap[0] = 0x3F;
+    memset(params.toneMap + 1, 0, 2);
+    params.mode = 3;
+    params.attenuation = 0;
+    params.modType = 0;
+    params.modScheme = 0;
+    params.pdc = 0;
+    params.rs2Blocks = 0;
+    params.delimiterType = 0;
 
     uint8_t rx_data[2];
     uint8_t tx_param[44];
@@ -300,7 +302,7 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
     tx_param[1] = 0x01;
     tx_param[2] = 0x80;
     tx_param[3] = 0x14; // 40 bytes
-    memcpy(tx_param + 4, &CENA_TX_PARAM, 40);
+    memcpy(tx_param + 4, &params, 40);
 
     struct spi_buf tx_spi_buf_param = {.buf = tx_param,
                                        .len = sizeof(tx_param)};
@@ -322,8 +324,8 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
     // CMD 2 : données
     tx_data[0] = 0x00;
     tx_data[1] = 0x02;
-    tx_data[2] = 0x80 | (CENA_TX_PARAM.dataLength >> 8);
-    tx_data[3] = (CENA_TX_PARAM.dataLength & 0xFF);
+    tx_data[2] = 0x80 | (params.dataLength >> 8);
+    tx_data[3] = (params.dataLength & 0xFF);
     tx_data[4] = len >> 8;
     tx_data[5] = len & 0xFF;
     memcpy(tx_data + 6, data, len);
