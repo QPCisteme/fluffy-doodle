@@ -46,7 +46,7 @@
 /* TX_PARAM Structure
  * =============================================================*/
 
-typedef struct
+typedef struct __attribute__((packed))
 {
     // Time_ref to trigger TX
     uint32_t timeIni;
@@ -70,4 +70,4 @@ typedef struct
     uint8_t rs2Blocks;
     // Can be NO_RES
     uint8_t delimiterType;
-} STRUCT_PACKED CENA_TX_PARAM;
+} CENA_TX_PARAM;
