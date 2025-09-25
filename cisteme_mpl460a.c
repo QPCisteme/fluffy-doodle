@@ -243,8 +243,8 @@ static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;
 
-    uint8_t spi_tx[4] = {(uint8_t)(PL460_G3_STATUS) & 0xff,
-                         (uint8_t)(PL460_G3_STATUS >> 8) & 0xff, 0x04, 0x00};
+    uint8_t spi_tx[4] = {(uint8_t)(PL460_G3_STATUS >> 8) & 0xff,
+                         (uint8_t)(PL460_G3_STATUS) & 0xff, 0x00, 0x04};
 
     uint8_t spi_rx[12];
 
@@ -261,8 +261,11 @@ static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
         return ret;
     }
 
-    memcpy((uint8_t *)event_info, &spi_rx[8], 4);
-    memcpy((uint8_t *)timer_ref, &spi_rx[4], 4);
+    *timer_ref =
+        (spi_rx[3] << 24) | (spi_rx[2] << 16) | (spi_rx[1] << 8) | (spi_rx[0]);
+    *event_info =
+        (spi_rx[7] << 24) | (spi_rx[6] << 16) | (spi_rx[5] << 8) | (spi_rx[4]);
+
     uint16_t header = (spi_rx[0] << 8) | (spi_rx[1]);
 
     if (header == PL460_FW_HEADER)
