@@ -8,7 +8,6 @@
 #include <zephyr/kernel.h>
 
 // Include custom libs
-#include "cisteme_mpl460a_regmap.h"
 #include <cisteme_mpl460a.h>
 
 // Define C function
