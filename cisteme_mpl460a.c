@@ -393,8 +393,8 @@ static int tx_enable(const struct device *dev)
         return ret;
 
     tx_data[2] = 0x01;
-    tx_data[4] = 0x80;
-    tx_data[5] = 0x00;
+    tx_data[4] = 0x00;
+    tx_data[5] = 0x80;
 
     tx_spi_buf_data.len = 6;
 
