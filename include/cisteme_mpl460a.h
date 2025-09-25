@@ -190,7 +190,7 @@ static inline int z_impl_mpl460a_send(const struct device *dev, uint8_t *data,
     {
         return -ENOSYS;
     }
-    return api->mpl460a_send(data, len);
+    return api->mpl460a_send(dev, data, len);
 }
 
 // Include syscall
