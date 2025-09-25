@@ -243,8 +243,8 @@ static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;
 
-    uint8_t spi_tx[4] = {(uint8_t)(PL460_G3_STATUS >> 8) & 0xff,
-                         (uint8_t)PL460_G3_STATUS & 0xff, 0x04, 0x00};
+    uint8_t spi_tx[4] = {(uint8_t)(PL460_G3_STATUS) & 0xff,
+                         (uint8_t)(PL460_G3_STATUS >> 8) & 0xff, 0x04, 0x00};
 
     uint8_t spi_rx[12];
 
