@@ -276,6 +276,8 @@ static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
 
 static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
 {
+    gpio_pin_set_dt(&drv_config->txen, 1);
+
     // Limit packet length
     if (len > 64)
         return -1;
@@ -380,6 +382,9 @@ static int mpl460a_init(const struct device *dev)
     if (!gpio_is_ready_dt(&drv_config->en))
         return -1;
 
+    if (!gpio_is_ready_dt(&drv_config->txen))
+        return -1;
+
     if (!spi_is_ready_dt(&drv_config->spi))
         return -1;
 
@@ -390,6 +395,10 @@ static int mpl460a_init(const struct device *dev)
         return ret;
 
     ret = gpio_pin_configure_dt(&drv_config->en, GPIO_OUTPUT_INACTIVE);
+    if (ret < 0)
+        return ret;
+
+    ret = gpio_pin_configure_dt(&drv_config->txen, GPIO_OUTPUT_INACTIVE);
     if (ret < 0)
         return ret;
 
