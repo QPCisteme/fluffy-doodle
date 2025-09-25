@@ -382,7 +382,8 @@ static int tx_enable(const struct device *dev)
     // Set TXEN pin
     gpio_pin_set_dt(&drv_config->txen, 1);
 
-    uint8_t tx_data[8] = {0x06, 0x00, 0x02, 0x80, 0x45, 0x40, 0x02, 0x00};
+    uint8_t tx_data[10] = {0x06, 0x00, 0x03, 0x80, 0x00,
+                           0x80, 0x45, 0x40, 0x02, 0x00};
 
     struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = 8};
     struct spi_buf_set tx_spi_data_set = {.buffers = &tx_spi_buf_data,
@@ -392,10 +393,8 @@ static int tx_enable(const struct device *dev)
     if (ret < 0)
         return ret;
 
-    tx_data[2] = 0x01;
-    tx_data[4] = 0x00;
-    tx_data[5] = 0x80;
-
+    uint8_t tx2 = {0x00, 0x06, 0x01, 0x80, 0x00, 0x80};
+    memcpy(tx_data, tx2, 6);
     tx_spi_buf_data.len = 6;
 
     ret = spi_write_dt(&drv_config->spi, &tx_spi_data_set);
