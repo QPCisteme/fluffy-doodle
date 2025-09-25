@@ -309,7 +309,30 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
     tx_param[1] = 0x00;
     tx_param[2] = 0x14;
     tx_param[3] = 0x80; // 40 bytes
-    memcpy(tx_param + 4, &params, 40);
+
+    uint8_t *pDst = tx_param + 4;
+
+    *pDst++ = (uint8_t)(params.timeIni);
+    *pDst++ = (uint8_t)(params.timeIni >> 8);
+    *pDst++ = (uint8_t)(params.timeIni >> 16);
+    *pDst++ = (uint8_t)(params.timeIni >> 24);
+
+    *pDst++ = (uint8_t)(params.dataLength);
+    *pDst++ = (uint8_t)(params.dataLength >> 8);
+
+    memcpy(pDst, params.preemphasis, 24);
+    pDst += 24;
+
+    memcpy(pDst, params.toneMap, 3);
+    pDst += 3;
+
+    *pDst++ = params.mode;
+    *pDst++ = params.attenuation;
+    *pDst++ = (uint8_t)params.modType;
+    *pDst++ = (uint8_t)params.modScheme;
+    *pDst++ = params.pdc;
+    *pDst++ = params.rs2Blocks;
+    *pDst++ = (uint8_t)params.delimiterType;
 
     struct spi_buf tx_spi_buf_param = {.buf = tx_param,
                                        .len = sizeof(tx_param)};
