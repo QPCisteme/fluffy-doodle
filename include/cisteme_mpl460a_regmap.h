@@ -1,4 +1,4 @@
-#include <zephyr/sys/utils>
+#include <zephyr/sys/util>
 
 /* COMMANDS ==================================================================*/
 #define PL460_WR 0x0000
