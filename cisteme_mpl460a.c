@@ -261,9 +261,9 @@ static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
         return ret;
     }
 
-    *timer_ref =
-        (spi_rx[3] << 24) | (spi_rx[2] << 16) | (spi_rx[1] << 8) | (spi_rx[0]);
     *event_info =
+        (spi_rx[3] << 24) | (spi_rx[2] << 16) | (spi_rx[1] << 8) | (spi_rx[0]);
+    *timer_ref =
         (spi_rx[7] << 24) | (spi_rx[6] << 16) | (spi_rx[5] << 8) | (spi_rx[4]);
 
     uint16_t header = (spi_rx[0] << 8) | (spi_rx[1]);
@@ -303,10 +303,10 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
     uint8_t tx_data[len + 6];
 
     // CMD 1 : paramètres
-    tx_param[0] = 0x00;
-    tx_param[1] = 0x01;
-    tx_param[2] = 0x80;
-    tx_param[3] = 0x14; // 40 bytes
+    tx_param[0] = 0x01;
+    tx_param[1] = 0x00;
+    tx_param[2] = 0x14;
+    tx_param[3] = 0x80; // 40 bytes
     memcpy(tx_param + 4, &params, 40);
 
     struct spi_buf tx_spi_buf_param = {.buf = tx_param,
@@ -327,10 +327,10 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
         return -2;
 
     // CMD 2 : données
-    tx_data[0] = 0x00;
-    tx_data[1] = 0x02;
-    tx_data[2] = 0x80 | (params.dataLength >> 8);
-    tx_data[3] = (params.dataLength & 0xFF);
+    tx_data[0] = 0x02;
+    tx_data[1] = 0x00;
+    tx_data[2] = (params.dataLength & 0xFF);
+    tx_data[3] = 0x80 | (params.dataLength >> 8);
     tx_data[4] = len >> 8;
     tx_data[5] = len & 0xFF;
     memcpy(tx_data + 6, data, len);
