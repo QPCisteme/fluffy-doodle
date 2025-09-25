@@ -40,3 +40,32 @@
 #define PL460_G3_RX_PARAM 0x0004
 #define PL460_G3_RX_DATA 0x0005
 #define PL460_G3_INFO 0x0006
+
+/* TX_PARAM Structure
+ * =============================================================*/
+
+typedef struct __attribute__((packed, aligned(1)))
+{
+    // Time_ref to trigger TX
+    uint32_t timeIni;
+    // Transmission length (CARE + 2)
+    uint16_t dataLength;
+    // Carrier preemphasis (for uniform gain)
+    uint8_t preemphasis[24];
+    // Available tones
+    uint8_t toneMap[3];
+    // Can be FORCED, RELATIVE, CANCEL, ...
+    uint8_t mode;
+    // LSB = -3dB
+    uint8_t attenuation;
+    // Can be BPSK, QPSK, ...
+    uint8_t modType;
+    // Can be differential, coherent
+    uint8_t modScheme;
+    // IDK
+    uint8_t pdc;
+    // Only for FCC
+    uint8_t rs2Blocks;
+    // Can be NO_RES
+    uint8_t delimiterType;
+} CENA_TX_PARAM;

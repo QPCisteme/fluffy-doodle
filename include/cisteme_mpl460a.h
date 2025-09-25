@@ -33,7 +33,8 @@ typedef int (*mpl460a_boot_fw_cmd_t)(const struct device *dev,
                                      const uint8_t *data, const uint32_t size);
 typedef int (*mpl460a_set_cmd_t)(const struct device *dev, uint8_t state);
 typedef int (*mpl460a_cmd_t)(const struct device *dev);
-
+typedef int (*mpl460a_data_cmd_t)(const struct device *dev, uint8_t *data,
+                                  uint8_t len);
 // API declaration
 __subsystem struct mpl460a_api
 {
@@ -51,6 +52,7 @@ __subsystem struct mpl460a_api
 
     // Firmware commands
     mpl460a_fw_event_cmd_t mpl460a_get_events;
+    mpl460a_data_cmd_t mpl460a_send;
 };
 
 __syscall int mpl460a_boot_write(const struct device *dev, uint32_t addr,
@@ -175,6 +177,20 @@ static inline int z_impl_mpl460a_boot_disable(const struct device *dev)
         return -ENOSYS;
     }
     return api->mpl460a_boot_disable(dev);
+}
+
+__syscall int mpl460a_send(const struct device *dev, uint8_t *data,
+                           uint8_t len);
+
+static inline int z_impl_mpl460a_send(const struct device *dev, uint8_t *data,
+                                      uint8_t len)
+{
+    const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
+    if (api->mpl460a_send == NULL)
+    {
+        return -ENOSYS;
+    }
+    return api->mpl460a_send(data, len);
 }
 
 // Include syscall
