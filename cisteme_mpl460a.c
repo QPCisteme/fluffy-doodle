@@ -261,10 +261,10 @@ static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
         return ret;
     }
 
-    *event_info = (spi_rx[9] << 24) | (spi_rx[8] << 16) | (spi_rx[11] << 8) |
-                  (spi_rx[10]);
+    *event_info = (spi_rx[10] << 24) | (spi_rx[11] << 16) | (spi_rx[8] << 8) |
+                  (spi_rx[9]);
     *timer_ref =
-        (spi_rx[5] << 24) | (spi_rx[4] << 16) | (spi_rx[7] << 8) | (spi_rx[6]);
+        (spi_rx[6] << 24) | (spi_rx[7] << 16) | (spi_rx[4] << 8) | (spi_rx[5]);
 
     uint16_t header = (spi_rx[0] << 8) | (spi_rx[1]);
 
