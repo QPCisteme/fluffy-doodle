@@ -283,8 +283,6 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;
 
-    gpio_pin_set_dt(&drv_config->txen, 1);
-
     CENA_TX_PARAM params;
 
     params.timeIni = 0;
@@ -376,6 +374,37 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
     return 0;
 }
 
+static int tx_enable(const struct device *dev)
+{
+    struct mpl460a_data *drv_data = dev->data;
+    struct mpl460a_config *drv_config = dev->config;
+
+    // Set TXEN pin
+    gpio_pin_set_dt(&drv_config->txen, 1);
+
+    uint8_t tx_data[8] = {0x06, 0x00, 0x03, 0x80, 0x45, 0x40, 0x02, 0x00};
+
+    struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = 8};
+    struct spi_buf_set tx_spi_data_set = {.buffers = &tx_spi_buf_data,
+                                          .count = 1};
+
+    ret = spi_write_dt(&drv_config->spi, &tx_spi_data_set);
+    if (ret < 0)
+        return ret;
+
+    tx_data[2] = 0x01;
+    tx_data[4] = 0x80;
+    tx_data[5] = 0x00;
+
+    tx_spi_buf_data.len = 6;
+
+    ret = spi_write_dt(&drv_config->spi, &tx_spi_data_set);
+    if (ret < 0)
+        return ret;
+
+    return 0;
+}
+
 // Fill API with functions
 static const struct mpl460a_api api = {
     .mpl460a_boot_write = &boot_write,
@@ -388,6 +417,7 @@ static const struct mpl460a_api api = {
     .mpl460a_get_events = &fw_get_events,
     .mpl460a_boot_disable = &boot_disable,
     .mpl460a_send = &fw_send,
+    .mpl460a_tx_enable = &tx_enable,
 };
 
 // Init function (called at creation)
