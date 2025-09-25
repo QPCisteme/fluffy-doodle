@@ -278,6 +278,9 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
     if (len > 64)
         return -1;
 
+    struct mpl460a_data *drv_data = dev->data;
+    struct mpl460a_config *drv_config = dev->config;
+
     CENA_TX_PARAM params;
 
     params.timeIni = 0;
