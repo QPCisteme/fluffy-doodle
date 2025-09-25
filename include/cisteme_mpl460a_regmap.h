@@ -1,3 +1,5 @@
+#include <zephyr/sys/utils>
+
 /* COMMANDS ==================================================================*/
 #define PL460_WR 0x0000
 #define PL460_MULT_WR 0x0001
@@ -44,7 +46,7 @@
 /* TX_PARAM Structure
  * =============================================================*/
 
-typedef struct CENA_TX_PARAM __attribute__((packed, aligned(1)))
+typedef struct
 {
     // Time_ref to trigger TX
     uint32_t timeIni;
@@ -68,4 +70,4 @@ typedef struct CENA_TX_PARAM __attribute__((packed, aligned(1)))
     uint8_t rs2Blocks;
     // Can be NO_RES
     uint8_t delimiterType;
-};
+} STRUCT_PACKED CENA_TX_PARAM;
