@@ -388,7 +388,7 @@ static int tx_enable(const struct device *dev)
     struct spi_buf_set tx_spi_data_set = {.buffers = &tx_spi_buf_data,
                                           .count = 1};
 
-    ret = spi_write_dt(&drv_config->spi, &tx_spi_data_set);
+    int ret = spi_write_dt(&drv_config->spi, &tx_spi_data_set);
     if (ret < 0)
         return ret;
 
