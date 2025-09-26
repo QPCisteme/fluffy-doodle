@@ -21,6 +21,8 @@ struct mpl460a_data
 {
     uint8_t nrst_state;
     uint8_t en_state;
+
+    CENA_TX_PARAM params;
 };
 
 // Functions typedef

@@ -304,8 +304,10 @@ static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
     if (events < 0)
         return events;
 
-    *timer_ref = sys_get_le32((uint8_t *)&rx_data[0]);
-    *event_info = sys_get_le32((uint8_t *)&rx_data[2]);
+    *timer_ref = (rx_data[6] << 24) | (rx_data[7] << 16) | (rx_data[4] << 8) |
+                 (rx_data[5]);
+    *event_info = (rx_data[10] << 24) | (rx_data[11] << 16) |
+                  (rx_data[8] << 8) | (rx_data[9]);
 
     return events;
 }
@@ -318,94 +320,17 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
 
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;
+    int ret;
 
-    CENA_TX_PARAM params;
-
-    params.timeIni = 0;
-    params.dataLength = len + 2; // payload + FCS
-    memset(params.preemphasis, 0, 24);
-    params.toneMap[0] = 0x3F;
-    memset(params.toneMap + 1, 0, 2);
-    params.mode = 3;
-    params.attenuation = 0;
-    params.modType = 0;
-    params.modScheme = 0;
-    params.pdc = 0;
-    params.rs2Blocks = 0;
-    params.delimiterType = 0;
-
-    uint8_t rx_data[2];
-    uint8_t tx_param[44];
-    uint8_t tx_data[len + 6];
-
-    // CMD 1 : paramètres
-    tx_param[0] = 0x01;
-    tx_param[1] = 0x00;
-    tx_param[2] = 0x14;
-    tx_param[3] = 0x80; // 40 bytes
-
-    uint8_t *pDst = tx_param + 4;
-
-    *pDst++ = (uint8_t)(params.timeIni);
-    *pDst++ = (uint8_t)(params.timeIni >> 8);
-    *pDst++ = (uint8_t)(params.timeIni >> 16);
-    *pDst++ = (uint8_t)(params.timeIni >> 24);
-
-    *pDst++ = (uint8_t)(params.dataLength);
-    *pDst++ = (uint8_t)(params.dataLength >> 8);
-
-    memcpy(pDst, params.preemphasis, 24);
-    pDst += 24;
-
-    memcpy(pDst, params.toneMap, 3);
-    pDst += 3;
-
-    *pDst++ = params.mode;
-    *pDst++ = params.attenuation;
-    *pDst++ = (uint8_t)params.modType;
-    *pDst++ = (uint8_t)params.modScheme;
-    *pDst++ = params.pdc;
-    *pDst++ = params.rs2Blocks;
-    *pDst++ = (uint8_t)params.delimiterType;
-
-    struct spi_buf tx_spi_buf_param = {.buf = tx_param,
-                                       .len = sizeof(tx_param)};
-    struct spi_buf_set tx_spi_param_set = {.buffers = &tx_spi_buf_param,
-                                           .count = 1};
-
-    struct spi_buf rx_spi_bufs = {.buf = rx_data, .len = 2};
-    struct spi_buf_set rx_spi_buf_set = {.buffers = &rx_spi_bufs, .count = 1};
-
-    int ret =
-        spi_transceive_dt(&drv_config->spi, &tx_spi_param_set, &rx_spi_buf_set);
+    ret = fw_id_send(dev, PL460_G3_TX_PARAM, &drv_data->params, 20, 0, 0, true);
     if (ret < 0)
         return ret;
-
-    uint16_t header = (rx_data[0] << 8) | (rx_data[1]);
-    if (header != PL460_FW_HEADER)
-        return -2;
 
     // CMD 2 : données
-    tx_data[0] = 0x02;
-    tx_data[1] = 0x00;
-    tx_data[2] = (params.dataLength & 0xFF);
-    tx_data[3] = 0x80 | (params.dataLength >> 8);
-    tx_data[4] = len >> 8;
-    tx_data[5] = len & 0xFF;
-    memcpy(tx_data + 6, data, len);
-
-    struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = len + 6};
-    struct spi_buf_set tx_spi_data_set = {.buffers = &tx_spi_buf_data,
-                                          .count = 1};
-
-    ret =
-        spi_transceive_dt(&drv_config->spi, &tx_spi_data_set, &rx_spi_buf_set);
+    ret = fw_id_send(dev, PL460_G3_TX_DATA, (uint16_t *)data, len >> 1, 0, 0,
+                     true);
     if (ret < 0)
         return ret;
-
-    header = (rx_data[0] << 8) | (rx_data[1]);
-    if (header != PL460_FW_HEADER)
-        return -3;
 
     return 0;
 }
@@ -516,6 +441,19 @@ static int mpl460a_init(const struct device *dev)
     ret = gpio_pin_configure_dt(&drv_config->txen, GPIO_OUTPUT_INACTIVE);
     if (ret < 0)
         return ret;
+
+    drv_data->params.timeIni = 0;
+    drv_data->params.dataLength = len + 2; // payload + FCS
+    memset(params.preemphasis, 0, 24);
+    drv_data->params.toneMap[0] = 0x3F;
+    memset(params.toneMap + 1, 0, 2);
+    drv_data->params.mode = 3;
+    drv_data->params.attenuation = 0;
+    drv_data->params.modType = 0;
+    drv_data->params.modScheme = 0;
+    drv_data->params.pdc = 0;
+    drv_data->params.rs2Blocks = 0;
+    drv_data->params.delimiterType = 0;
 
     return 0;
 }
