@@ -304,10 +304,10 @@ static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
     if (events < 0)
         return events;
 
-    *timer_ref = (rx_data[6] << 24) | (rx_data[7] << 16) | (rx_data[4] << 8) |
-                 (rx_data[5]);
-    *event_info = (rx_data[10] << 24) | (rx_data[11] << 16) |
-                  (rx_data[8] << 8) | (rx_data[9]);
+    *timer_ref = (rx_data[2] << 24) | (rx_data[3] << 16) | (rx_data[0] << 8) |
+                 (rx_data[1]);
+    *event_info = (rx_data[6] << 24) | (rx_data[7] << 16) | (rx_data[4] << 8) |
+                  (rx_data[5]);
 
     return events;
 }
@@ -323,7 +323,7 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
     int ret;
 
     drv_data->params.dataLength = len + 2; // payload + FCS
-    ret = fw_id_send(dev, PL460_G3_TX_PARAM, (uint8_t *)&drv_data->params, 20,
+    ret = fw_id_send(dev, PL460_G3_TX_PARAM, (uint16_t *)&drv_data->params, 20,
                      0, 0, true);
     if (ret < 0)
         return ret;
@@ -349,33 +349,6 @@ static int tx_enable(const struct device *dev)
                            0x80, 0x45, 0x40, 0x02, 0x00};
 
     struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = 10};
-    struct spi_buf_set tx_spi_data_set = {.buffers = &tx_spi_buf_data,
-                                          .count = 1};
-
-    int ret = spi_write_dt(&drv_config->spi, &tx_spi_data_set);
-    if (ret < 0)
-        return ret;
-
-    uint8_t tx2 = {0x00, 0x06, 0x01, 0x80, 0x00, 0x80};
-    memcpy(tx_data, tx2, 6);
-    tx_spi_buf_data.len = 6;
-
-    ret = spi_write_dt(&drv_config->spi, &tx_spi_data_set);
-    if (ret < 0)
-        return ret;
-
-    return 0;
-}
-
-static int read_PIB(const struct device *dev, uint16_t addr)
-{
-    struct mpl460a_data *drv_data = dev->data;
-    struct mpl460a_config *drv_config = dev->config;
-
-    uint8_t tx_data[10] = {0x06, 0x00, 0x03, 0x80, 0x00,
-                           0x80, 0x45, 0x40, 0x02, 0x00};
-
-    struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = 8};
     struct spi_buf_set tx_spi_data_set = {.buffers = &tx_spi_buf_data,
                                           .count = 1};
 
