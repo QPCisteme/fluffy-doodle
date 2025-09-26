@@ -304,10 +304,8 @@ static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
     if (events < 0)
         return events;
 
-    *timer_ref = (rx_data[2] << 24) | (rx_data[3] << 16) | (rx_data[0] << 8) |
-                 (rx_data[1]);
-    *event_info = (rx_data[6] << 24) | (rx_data[7] << 16) | (rx_data[4] << 8) |
-                  (rx_data[5]);
+    *timer_ref = (rx_data[0] << 16) | (rx_data[1] << 16);
+    *event_info = (rx_data[2] << 24) | (rx_data[3] << 16);
 
     return events;
 }
