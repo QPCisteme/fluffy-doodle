@@ -336,7 +336,7 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
     return 0;
 }
 
-static int pib_read(const struct device *dev, uint8_t state)
+static int pib_read(const struct device *dev, uint16_t addr)
 {
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;

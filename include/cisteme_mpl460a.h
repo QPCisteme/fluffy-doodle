@@ -37,6 +37,9 @@ typedef int (*mpl460a_set_cmd_t)(const struct device *dev, uint8_t state);
 typedef int (*mpl460a_cmd_t)(const struct device *dev);
 typedef int (*mpl460a_data_cmd_t)(const struct device *dev, uint8_t *data,
                                   uint8_t len);
+
+typedef int (*mpl460a_pib_cmd_t)(const struct device *dev, uint16_t addr);
+
 // API declaration
 __subsystem struct mpl460a_api
 {
@@ -57,7 +60,7 @@ __subsystem struct mpl460a_api
     mpl460a_data_cmd_t mpl460a_send;
     mpl460a_cmd_t mpl460a_tx_enable;
 
-    mpl460a_set_cmd_t mpl460a_pib_read;
+    mpl460a_pib_cmd_t mpl460a_pib_read;
 };
 
 __syscall int mpl460a_boot_write(const struct device *dev, uint32_t addr,
@@ -198,10 +201,10 @@ static inline int z_impl_mpl460a_send(const struct device *dev, uint8_t *data,
     return api->mpl460a_send(dev, data, len);
 }
 
-__syscall int mpl460a_pib_read(const struct device *dev, uint8_t state);
+__syscall int mpl460a_pib_read(const struct device *dev, uint16_t state);
 
 static inline int z_impl_mpl460a_pib_read(const struct device *dev,
-                                          uint8_t state)
+                                          uint16_t state)
 {
     const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
     if (api->mpl460a_pib_read == NULL)
