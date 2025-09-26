@@ -238,7 +238,7 @@ static int boot_disable(const struct device *dev)
     return 0;
 }
 
-static int fw_id_send(struct device *dev, uint16_t id, uint16_t *tx,
+static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
                       uint16_t tx_size, uint16_t *rx, uint16_t rx_size,
                       bool write)
 {
@@ -302,10 +302,10 @@ static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
     uint16_t events = fw_id_send(dev, PL460_G3_STATUS, 0, 0, rx_data, 4, false);
 
     if (events < 0)
-        return -1;
+        return events;
 
-    *timer_ref = sys_get_le32(rx_data);
-    *event_info = sys_get_le32(rx_data + 4);
+    *timer_ref = sys_get_le32((uint8_t *)&rx_data[0]);
+    *event_info = sys_get_le32((uint8_t *)&rx_data[2]);
 
     return events;
 }
