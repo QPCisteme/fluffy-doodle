@@ -350,7 +350,7 @@ static int pib_read(const struct device *dev, uint16_t addr)
     if (ret < 0)
         return ret;
 
-    uint16_t reg_len = (uint16_t)event_info >> 16;
+    uint16_t reg_len = (uint16_t)event_info & 0xffff;
 
     printk("register len : %.4x", reg_len);
 
