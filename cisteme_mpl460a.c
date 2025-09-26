@@ -238,8 +238,8 @@ static int boot_disable(const struct device *dev)
     return 0;
 }
 
-static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
-                      uint16_t tx_size, uint16_t *rx, uint16_t rx_size,
+static int fw_id_send(const struct device *dev, uint16_t id, uint8_t *tx,
+                      uint16_t tx_size, uint8_t *rx, uint16_t rx_size,
                       bool write)
 {
     if (tx_size & 0x8000)
@@ -248,8 +248,8 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;
 
-    uint8_t tx_data[tx_size * 2 + 4];
-    uint8_t rx_data[rx_size * 2 + 4];
+    uint8_t tx_data[tx_size + 4];
+    uint8_t rx_data[rx_size + 4];
 
     // Copy ID (LE)
     sys_put_le16(id, &tx_data[0]);
@@ -262,14 +262,14 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
 
     // Copy payload (16-bit words in LE)
     if (tx_size > 0)
-        memcpy(tx_data + 4, (uint8_t *)tx, tx_size * 2);
+        memcpy(tx_data + 4, tx, tx_size);
 
     // SPI communication
-    struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = tx_size * 2 + 4};
+    struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = tx_size + 4};
     struct spi_buf_set tx_spi_data_set = {.buffers = &tx_spi_buf_data,
                                           .count = 1};
 
-    struct spi_buf rx_spi_buf_data = {.buf = rx_data, .len = rx_size * 2 + 4};
+    struct spi_buf rx_spi_buf_data = {.buf = rx_data, .len = rx_size + 4};
     struct spi_buf_set rx_spi_data_set = {.buffers = &rx_spi_buf_data,
                                           .count = 1};
 
@@ -285,7 +285,7 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
 
     // Copy RX data if present
     if (rx_size > 0)
-        memcpy(rx, rx_data + 4, rx_size * 2);
+        memcpy(rx, rx_data + 4, rx_size);
 
     // Return events (LE)
     int events = sys_get_le16(&rx_data[2]);
@@ -298,14 +298,16 @@ static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;
 
-    uint16_t rx_data[4];
-    uint16_t events = fw_id_send(dev, PL460_G3_STATUS, 0, 0, rx_data, 4, false);
+    uint8_t rx_data[8];
+    uint16_t events = fw_id_send(dev, PL460_G3_STATUS, 0, 0, rx_data, 8, false);
 
     if (events < 0)
         return events;
 
-    sys_memcpy_swap((uint8_t *)timer_ref, (uint8_t *)rx_data, 4);
-    sys_memcpy_swap((uint8_t *)event_info, (uint8_t *)&rx_data[2], 4);
+    *timer_ref = (rx_data[1] << 24) | (rx_data[0] << 16) | (rx_data[3] << 8) |
+                 (rx_data[2]);
+    *event_info = (rx_data[5] << 24) | (rx_data[4] << 16) | (rx_data[7] << 8) |
+                  (rx_data[6]);
 
     return events;
 }
