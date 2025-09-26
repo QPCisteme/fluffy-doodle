@@ -56,6 +56,8 @@ __subsystem struct mpl460a_api
     mpl460a_fw_event_cmd_t mpl460a_get_events;
     mpl460a_data_cmd_t mpl460a_send;
     mpl460a_cmd_t mpl460a_tx_enable;
+
+    mpl460a_set_cmd_t mpl460a_pib_read;
 };
 
 __syscall int mpl460a_boot_write(const struct device *dev, uint32_t addr,
@@ -196,16 +198,17 @@ static inline int z_impl_mpl460a_send(const struct device *dev, uint8_t *data,
     return api->mpl460a_send(dev, data, len);
 }
 
-__syscall int mpl460a_tx_enable(const struct device *dev);
+__syscall int mpl460a_pib_read(const struct device *dev, uint8_t state);
 
-static inline int z_impl_mpl460a_tx_enable(const struct device *dev)
+static inline int z_impl_mpl460a_pib_read(const struct device *dev,
+                                          uint8_t state)
 {
     const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
-    if (api->mpl460a_tx_enable == NULL)
+    if (api->mpl460a_pib_read == NULL)
     {
         return -ENOSYS;
     }
-    return api->mpl460a_tx_enable(dev);
+    return api->mpl460a_pib_read(dev, state);
 }
 // Include syscall
 #include <syscalls/cisteme_mpl460a.h>
