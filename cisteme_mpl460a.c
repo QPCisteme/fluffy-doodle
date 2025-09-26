@@ -304,8 +304,8 @@ static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
     if (events < 0)
         return events;
 
-    *timer_ref = (rx_data[0] << 16) | (rx_data[1]);
-    *event_info = (rx_data[2] << 16) | (rx_data[3]);
+    sys_memcpy_swap((uint8_t *)timer_ref, (uint8_t *)rx_data, 4);
+    sys_memcpy_swap((uint8_t *)event_info, (uint8_t *)&rx_data[2], 4);
 
     return events;
 }
