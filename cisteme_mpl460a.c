@@ -254,7 +254,7 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint8_t *tx,
     // Copy ID (LE)
     sys_put_le16(id, &tx_data[0]);
     // Copy length (LE)
-    sys_put_le16(tx_size, &tx_data[2]);
+    sys_put_le16(tx_size >> 1, &tx_data[2]);
 
     // Update R/W bit
     if (write)
@@ -323,7 +323,7 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
     int ret;
 
     drv_data->params.dataLength = len + 2; // payload + FCS
-    ret = fw_id_send(dev, PL460_G3_TX_PARAM, (uint16_t *)&drv_data->params, 20,
+    ret = fw_id_send(dev, PL460_G3_TX_PARAM, (uint8_t *)&drv_data->params, 40,
                      0, 0, true);
     if (ret < 0)
         return ret;
