@@ -299,7 +299,7 @@ static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
     struct mpl460a_config *drv_config = dev->config;
 
     uint16_t rx_data[4];
-    uint16_t events = fw_id_send(dev, PL460_STATUS, 0, 0, rx_data, 4, false);
+    uint16_t events = fw_id_send(dev, PL460_G3_STATUS, 0, 0, rx_data, 4, false);
 
     if (events < 0)
         return -1;
