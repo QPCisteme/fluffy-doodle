@@ -329,14 +329,16 @@ static int pib_read(const struct device *dev, uint16_t addr)
     int ret;
 
     uint32_t register_id = addr + PL460_G3_BASE_PIB;
-    uint8_t tx[6] = {(register_id >> 8) & 0xff,
-                     register_id & 0xff,
-                     (register_id >> 24) & 0xff,
+    uint8_t tx[8] = {(register_id >> 24) & 0xff,
                      (register_id >> 16) & 0xff,
-                     0x02,
+                     (register_id >> 8) & 0xff,
+                     (register_id) & 0xff,
+                     0x01,
+                     0x00,
+                     0x00,
                      0x00};
 
-    ret = fw_id_send(dev, PL460_G3_REG_INFO, tx, 6, 0, 0, true);
+    ret = fw_id_send(dev, PL460_G3_REG_INFO, tx, 8, 0, 0, true);
     if (ret < 0)
         return ret;
 
