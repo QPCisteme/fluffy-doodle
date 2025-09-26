@@ -6,6 +6,7 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/spi.h>
 #include <zephyr/kernel.h>
+#include <zephyr/sys/byteorder.h>
 
 // Include custom libs
 #include <cisteme_mpl460a.h>
@@ -237,41 +238,76 @@ static int boot_disable(const struct device *dev)
     return 0;
 }
 
+static int fw_id_send(struct device *dev, uint16_t id, uint16_t *tx,
+                      uint16_t tx_size, uint16_t *rx, uint16_t rx_size,
+                      bool write)
+{
+    if (tx_size & 0x8000)
+        return -1;
+
+    struct mpl460a_data *drv_data = dev->data;
+    struct mpl460a_config *drv_config = dev->config;
+
+    uint8_t tx_data[tx_size * 2 + 4];
+    uint8_t rx_data[rx_size * 2 + 4];
+
+    // Copy ID (LE)
+    sys_put_le16(id, &tx_data[0]);
+    // Copy length (LE)
+    sys_put_le16(tx_size, &tx_data[2]);
+
+    // Update R/W bit
+    if (write)
+        tx_data[3] |= 0x80;
+
+    // Copy payload (16-bit words in LE)
+    if (tx_size > 0)
+        memcpy(tx_data + 4, (uint8_t *)tx, tx_size * 2);
+
+    // SPI communication
+    struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = tx_size * 2 + 4};
+    struct spi_buf_set tx_spi_data_set = {.buffers = &tx_spi_buf_data,
+                                          .count = 1};
+
+    struct spi_buf rx_spi_buf_data = {.buf = rx_data, .len = rx_size * 2 + 4};
+    struct spi_buf_set rx_spi_data_set = {.buffers = &rx_spi_buf_data,
+                                          .count = 1};
+
+    int ret =
+        spi_transceive_dt(&drv_config->spi, &tx_spi_data_set, &rx_spi_data_set);
+    if (ret < 0)
+        return ret;
+
+    // Check FW header
+    uint16_t header = sys_get_be16(&rx_data[0]);
+    if (header != PL460_FW_HEADER)
+        return -2;
+
+    // Copy RX data if present
+    if (rx_size > 0)
+        memcpy(rx, rx_data + 4, rx_size * 2);
+
+    // Return events (LE)
+    int events = sys_get_le16(&rx_data[2]);
+    return events;
+}
+
 static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
                          uint32_t *event_info)
 {
     struct mpl460a_data *drv_data = dev->data;
     struct mpl460a_config *drv_config = dev->config;
 
-    uint8_t spi_tx[4] = {(uint8_t)(PL460_G3_STATUS) & 0xff,
-                         (uint8_t)(PL460_G3_STATUS >> 8) & 0xff, 0x04, 0x00};
+    uint16_t rx_data[4];
+    uint16_t events = fw_id_send(dev, PL460_STATUS, 0, 0, rx_data, 4, false);
 
-    uint8_t spi_rx[12];
-
-    struct spi_buf tx_spi_buf = {.buf = spi_tx, .len = 4};
-    struct spi_buf_set tx_spi_buf_set = {.buffers = &tx_spi_buf, .count = 1};
-
-    struct spi_buf rx_spi_bufs = {.buf = spi_rx, .len = 12};
-    struct spi_buf_set rx_spi_buf_set = {.buffers = &rx_spi_bufs, .count = 1};
-
-    int ret;
-    ret = spi_transceive_dt(&drv_config->spi, &tx_spi_buf_set, &rx_spi_buf_set);
-    if (ret < 0)
-    {
-        return ret;
-    }
-
-    *event_info = (spi_rx[10] << 24) | (spi_rx[11] << 16) | (spi_rx[8] << 8) |
-                  (spi_rx[9]);
-    *timer_ref =
-        (spi_rx[6] << 24) | (spi_rx[7] << 16) | (spi_rx[4] << 8) | (spi_rx[5]);
-
-    uint16_t header = (spi_rx[0] << 8) | (spi_rx[1]);
-
-    if (header == PL460_FW_HEADER)
-        return 0;
-    else
+    if (events < 0)
         return -1;
+
+    *timer_ref = sys_get_le32(rx_data);
+    *event_info = sys_get_le32(rx_data + 4);
+
+    return events;
 }
 
 static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
