@@ -322,7 +322,9 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
     struct mpl460a_config *drv_config = dev->config;
     int ret;
 
-    ret = fw_id_send(dev, PL460_G3_TX_PARAM, &drv_data->params, 20, 0, 0, true);
+    drv_data->params.dataLength = len + 2; // payload + FCS
+    ret = fw_id_send(dev, PL460_G3_TX_PARAM, (uint8_t *)&drv_data->params, 20,
+                     0, 0, true);
     if (ret < 0)
         return ret;
 
@@ -443,10 +445,10 @@ static int mpl460a_init(const struct device *dev)
         return ret;
 
     drv_data->params.timeIni = 0;
-    drv_data->params.dataLength = len + 2; // payload + FCS
-    memset(params.preemphasis, 0, 24);
+    drv_data->params.dataLength = 0; // payload + FCS
+    memset(drv_data->params.preemphasis, 0, 24);
     drv_data->params.toneMap[0] = 0x3F;
-    memset(params.toneMap + 1, 0, 2);
+    memset(drv_data->params.toneMap + 1, 0, 2);
     drv_data->params.mode = 3;
     drv_data->params.attenuation = 0;
     drv_data->params.modType = 0;
