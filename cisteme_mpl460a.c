@@ -15,7 +15,7 @@
 static int boot_write(const struct device *dev, uint32_t addr, uint16_t cmd,
                       uint8_t *data, uint8_t size)
 {
-    struct mpl460a_config *drv_config = dev->config;
+    const struct mpl460a_config *drv_config = dev->config;
 
     uint8_t addr_cmd[6] = {(addr) & 0xFF,       (addr >> 8) & 0xFF,
                            (addr >> 16) & 0xFF, (addr >> 24) & 0xFF,
@@ -48,7 +48,7 @@ static int boot_write(const struct device *dev, uint32_t addr, uint16_t cmd,
 static int boot_read(const struct device *dev, uint32_t addr, uint16_t cmd,
                      uint8_t *data, uint8_t size)
 {
-    struct mpl460a_config *drv_config = dev->config;
+    const struct mpl460a_config *drv_config = dev->config;
 
     uint8_t addr_cmd[6] = {(addr) & 0xFF,       (addr >> 8) & 0xFF,
                            (addr >> 16) & 0xFF, (addr >> 24) & 0xFF,
@@ -105,7 +105,6 @@ static int boot_write_fw(const struct device *dev, const uint8_t *data,
     int ret;
     uint32_t write_addr = 0, max_addr = size;
     uint8_t pkt_size;
-    uint8_t pkt_data[252];
 
     while (max_addr > 0)
     {
@@ -165,7 +164,7 @@ static int boot_check_fw(const struct device *dev, const uint8_t *data,
 static int set_nrst(const struct device *dev, uint8_t state)
 {
     struct mpl460a_data *drv_data = dev->data;
-    struct mpl460a_config *drv_config = dev->config;
+    const struct mpl460a_config *drv_config = dev->config;
 
     gpio_pin_set_dt(&drv_config->nrst, state);
     drv_data->nrst_state = state;
@@ -176,7 +175,7 @@ static int set_nrst(const struct device *dev, uint8_t state)
 static int set_en(const struct device *dev, uint8_t state)
 {
     struct mpl460a_data *drv_data = dev->data;
-    struct mpl460a_config *drv_config = dev->config;
+    const struct mpl460a_config *drv_config = dev->config;
 
     gpio_pin_set_dt(&drv_config->en, state);
     drv_data->en_state = state;
@@ -239,7 +238,7 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint8_t *tx,
     if (tx_size & 0x8000)
         return -1;
 
-    struct mpl460a_config *drv_config = dev->config;
+    const struct mpl460a_config *drv_config = dev->config;
 
     uint8_t tx_data[tx_size + 4];
     uint8_t rx_data[rx_size + 4];
@@ -309,7 +308,6 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
         return -1;
 
     struct mpl460a_data *drv_data = dev->data;
-    struct mpl460a_config *drv_config = dev->config;
     int ret;
 
     drv_data->params.dataLength = len + 2;
@@ -350,7 +348,7 @@ static int pib_read(const struct device *dev, uint16_t addr)
     if (ret < 0)
         return ret;
 
-    uint16_t reg_len = (uint16_t)event_info & 0x0000FFFF;
+    uint16_t reg_len = (uint16_t)event_info & 0xFFFF0000;
 
     printk("register len : %.4x", reg_len);
 
@@ -376,7 +374,7 @@ static const struct mpl460a_api api = {
 static int mpl460a_init(const struct device *dev)
 {
     struct mpl460a_data *drv_data = dev->data;
-    struct mpl460a_config *drv_config = dev->config;
+    const struct mpl460a_config *drv_config = dev->config;
 
     drv_data->nrst_state = 0;
     drv_data->en_state = 0;
