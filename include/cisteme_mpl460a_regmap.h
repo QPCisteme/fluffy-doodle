@@ -41,7 +41,7 @@
 #define PL460_G3_RX_DATA 0x0005
 #define PL460_G3_REG_INFO 0x0006
 
-#define PL460_G3_BASE_PIB 0x800000000
+#define PL460_G3_BASE_PIB 0x80000000
 
 /* TX_PARAM Structure
  * =============================================================*/
