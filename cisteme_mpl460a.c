@@ -271,6 +271,11 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint8_t *tx,
     if (ret < 0)
         return ret;
 
+    for (int i = 0, i < (rx_size + 4); i++)
+        printk("%.2x ", rx_data[i]);
+
+    printk("\r\n");
+
     // Check FW header
     uint16_t header = sys_get_be16(&rx_data[0]);
     if (header != PL460_FW_HEADER)
