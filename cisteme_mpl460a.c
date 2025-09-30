@@ -349,10 +349,10 @@ void extin_IRQ(const struct device *dev, struct gpio_callback *cb,
 
     int ret = fw_get_events(dev, &timer_ref, &event_info);
     if (ret < 0)
-        return ret;
+        return;
 
     printk("IRQ ! time = %d, events = %.4x, events_info = %.8x\r\n",
-           time_ref / 1000000, ret, events_info);
+           timer_ref / 1000000, ret, event_info);
 }
 
 // Fill API with functions
@@ -426,7 +426,8 @@ static int mpl460a_init(const struct device *dev)
     drv_data->params.delimiterType = 0;
 
     gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
-    gpio_init_callback(&extin_cb_data, extin_IRQ, BIT(drv_config->extin.pin));
+    gpio_init_callback(&drv_data->extin_cb_data, extin_IRQ,
+                       BIT(drv_config->extin.pin));
     gpio_add_callback(drv_config->extin.port, &extin_cb_data);
     return 0;
 }
