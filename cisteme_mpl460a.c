@@ -329,14 +329,11 @@ static int pib_read(const struct device *dev, uint16_t addr)
     int ret;
 
     uint32_t register_id = addr;
-    uint8_t tx[8] = {(register_id >> 24) & 0xff,
-                     (register_id >> 16) & 0xff,
-                     (register_id >> 8) & 0xff,
-                     (register_id) & 0xff,
-                     0x01,
-                     0x00,
-                     0x00,
-                     0x00};
+    uint8_t tx[8];
+
+    sys_put_le32(register_id, tx);
+    sys_put_le16(0x0002, tx + 4);
+    sys_put_le16(0x0000, tx + 6);
 
     ret = fw_id_send(dev, PL460_G3_REG_INFO, tx, 8, 0, 0, true);
     if (ret < 0)
@@ -350,9 +347,7 @@ static int pib_read(const struct device *dev, uint16_t addr)
     if (ret < 0)
         return ret;
 
-    uint16_t reg_len = (uint16_t)event_info & 0xffff;
-
-    printk("register len : %.4x", reg_len);
+    printk("event_info : %.08x", event_info);
 
     return 0;
 }
