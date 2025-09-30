@@ -330,7 +330,8 @@ static int pib_read(const struct device *dev, uint32_t register_id,
     int ret;
     uint8_t tx[8];
 
-    sys_put_le32(register_id, tx);
+    sys_put_le16((uint16_t)register_id >> 16, tx);
+    sys_put_le16((uint16_t)register_id & 0xffff, tx + 2);
     sys_put_le16(len, tx + 4);
     sys_put_le16(0x0000, tx + 6);
 
