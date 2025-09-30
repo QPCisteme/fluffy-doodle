@@ -327,6 +327,9 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
 static int pib_read(const struct device *dev, uint32_t register_id,
                     uint16_t len)
 {
+    struct mpl460a_data *drv_data = dev->data;
+    const struct mpl460a_config *drv_config = dev->config;
+
     int ret;
     uint8_t tx[8];
 
@@ -355,8 +358,6 @@ void extin_IRQ(const struct device *dev, struct gpio_callback *cb,
 
     printk("IRQ ! time = %d, events = %.4x, events_info = %.8x\r\n",
            timer_ref / 1000000, ret, event_info);
-
-    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLE);
 }
 
 // Fill API with functions
