@@ -324,15 +324,14 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
     return 0;
 }
 
-static int pib_read(const struct device *dev, uint16_t addr)
+static int pib_read(const struct device *dev, uint32_t register_id,
+                    uint16_t len)
 {
     int ret;
-
-    uint32_t register_id = addr + PL460_G3_BASE_PIB;
     uint8_t tx[8];
 
     sys_put_le32(register_id, tx);
-    sys_put_le16(0x0002, tx + 4);
+    sys_put_le16(len, tx + 4);
     sys_put_le16(0x0000, tx + 6);
 
     ret = fw_id_send(dev, PL460_G3_REG_INFO, tx, 8, 0, 0, true);

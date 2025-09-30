@@ -38,7 +38,8 @@ typedef int (*mpl460a_cmd_t)(const struct device *dev);
 typedef int (*mpl460a_data_cmd_t)(const struct device *dev, uint8_t *data,
                                   uint8_t len);
 
-typedef int (*mpl460a_pib_cmd_t)(const struct device *dev, uint16_t addr);
+typedef int (*mpl460a_pib_cmd_t)(const struct device *dev, uint32_t register_id,
+                                 uint16_t len);
 
 // API declaration
 __subsystem struct mpl460a_api
@@ -201,17 +202,18 @@ static inline int z_impl_mpl460a_send(const struct device *dev, uint8_t *data,
     return api->mpl460a_send(dev, data, len);
 }
 
-__syscall int mpl460a_pib_read(const struct device *dev, uint16_t state);
+__syscall int mpl460a_pib_read(const struct device *dev, uint32_t register_id,
+                               uint16_t len);
 
 static inline int z_impl_mpl460a_pib_read(const struct device *dev,
-                                          uint16_t state)
+                                          uint32_t register_id, uint16_t len)
 {
     const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
     if (api->mpl460a_pib_read == NULL)
     {
         return -ENOSYS;
     }
-    return api->mpl460a_pib_read(dev, state);
+    return api->mpl460a_pib_read(dev, register_id, len);
 }
 // Include syscall
 #include <syscalls/cisteme_mpl460a.h>
