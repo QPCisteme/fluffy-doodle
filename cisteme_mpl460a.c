@@ -328,7 +328,7 @@ static int pib_read(const struct device *dev, uint16_t addr)
 {
     int ret;
 
-    uint32_t register_id = addr;
+    uint32_t register_id = addr + PL460_G3_BASE_PIB;
     uint8_t tx[8];
 
     sys_put_le32(register_id, tx);
