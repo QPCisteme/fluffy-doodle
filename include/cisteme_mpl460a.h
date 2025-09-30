@@ -23,6 +23,8 @@ struct mpl460a_data
     uint8_t en_state;
 
     CENA_TX_PARAM params;
+
+    static struct gpio_callback extin_cb_data;
 };
 
 // Functions typedef

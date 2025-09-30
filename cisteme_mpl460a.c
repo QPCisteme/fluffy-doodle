@@ -339,17 +339,20 @@ static int pib_read(const struct device *dev, uint32_t register_id,
     if (ret < 0)
         return ret;
 
+    return 0;
+}
+
+void extin_IRQ(const struct device *dev, struct gpio_callback *cb,
+               uint32_t pins)
+{
     uint32_t timer_ref, event_info;
 
-    k_msleep(10);
-
-    ret = fw_get_events(dev, &timer_ref, &event_info);
+    int ret = fw_get_events(dev, &timer_ref, &event_info);
     if (ret < 0)
         return ret;
 
-    printk("event_info : %.08x", event_info);
-
-    return 0;
+    printk("IRQ ! time = %d, events = %.4x, events_info = %.8x\r\n",
+           time_ref / 1000000, ret, events_info);
 }
 
 // Fill API with functions
@@ -385,6 +388,9 @@ static int mpl460a_init(const struct device *dev)
     if (!gpio_is_ready_dt(&drv_config->txen))
         return -1;
 
+    if (!gpio_is_ready_dt(&drv_config->extin))
+        return -1;
+
     if (!spi_is_ready_dt(&drv_config->spi))
         return -1;
 
@@ -402,6 +408,10 @@ static int mpl460a_init(const struct device *dev)
     if (ret < 0)
         return ret;
 
+    ret = gpio_pin_configure_dt(&drv_config->extin, GPIO_INPUT);
+    if (ret < 0)
+        return ret;
+
     drv_data->params.timeIni = 0;
     drv_data->params.dataLength = 0; // payload + FCS
     memset(drv_data->params.preemphasis, 0, 24);
@@ -415,6 +425,9 @@ static int mpl460a_init(const struct device *dev)
     drv_data->params.rs2Blocks = 0;
     drv_data->params.delimiterType = 0;
 
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
+    gpio_init_callback(&extin_cb_data, extin_IRQ, BIT(drv_config->extin.pin));
+    gpio_add_callback(drv_config->extin.port, &extin_cb_data);
     return 0;
 }
 
