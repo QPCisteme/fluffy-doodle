@@ -314,6 +314,8 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
         return -1;
 
     struct mpl460a_data *drv_data = dev->data;
+    const struct mpl460a_config *drv_config = dev->config;
+
     int ret;
 
     gpio_pin_set_dt(&drv_config->txen, 1);
@@ -350,9 +352,6 @@ void extin_IRQ(const struct device *dev, struct gpio_callback *cb,
 static int pib_read(const struct device *dev, uint32_t register_id,
                     uint16_t len)
 {
-    const struct mpl460a_config *drv_config = dev->config;
-    struct mpl460a_data *drv_data = dev->data;
-
     int ret;
     uint8_t tx[8];
 
