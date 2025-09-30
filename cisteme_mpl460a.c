@@ -12,6 +12,19 @@
 // Include custom libs
 #include <cisteme_mpl460a.h>
 
+void extin_IRQ(const struct device *dev, struct gpio_callback *cb,
+               uint32_t pins)
+{
+    uint32_t timer_ref, event_info;
+
+    int ret = fw_get_events(dev, &timer_ref, &event_info);
+    if (ret < 0)
+        return;
+
+    printk("IRQ ! time = %d, events = %.4x, events_info = %.8x\r\n",
+           timer_ref / 1000000, ret, event_info);
+}
+
 // Define C function
 static int boot_write(const struct device *dev, uint32_t addr, uint16_t cmd,
                       uint8_t *data, uint8_t size)
@@ -329,6 +342,7 @@ static int pib_read(const struct device *dev, uint32_t register_id,
                     uint16_t len)
 {
     const struct mpl460a_config *drv_config = dev->config;
+    struct mpl460a_data *drv_data = dev->data;
 
     int ret;
     uint8_t tx[8];
@@ -349,19 +363,6 @@ static int pib_read(const struct device *dev, uint32_t register_id,
     gpio_add_callback(drv_config->extin.port, &drv_data->extin_cb_data);
 
     return 0;
-}
-
-void extin_IRQ(const struct device *dev, struct gpio_callback *cb,
-               uint32_t pins)
-{
-    uint32_t timer_ref, event_info;
-
-    int ret = fw_get_events(dev, &timer_ref, &event_info);
-    if (ret < 0)
-        return;
-
-    printk("IRQ ! time = %d, events = %.4x, events_info = %.8x\r\n",
-           timer_ref / 1000000, ret, event_info);
 }
 
 // Fill API with functions
