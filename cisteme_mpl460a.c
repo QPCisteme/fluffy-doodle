@@ -428,7 +428,7 @@ static int mpl460a_init(const struct device *dev)
     gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
     gpio_init_callback(&drv_data->extin_cb_data, extin_IRQ,
                        BIT(drv_config->extin.pin));
-    gpio_add_callback(drv_config->extin.port, &extin_cb_data);
+    gpio_add_callback(drv_config->extin.port, &drv_data->extin_cb_data);
     return 0;
 }
 
