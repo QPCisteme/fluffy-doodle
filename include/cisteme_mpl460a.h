@@ -24,7 +24,7 @@ struct mpl460a_data
 
     CENA_TX_PARAM params;
 
-    static struct gpio_callback extin_cb_data;
+    struct gpio_callback extin_cb_data;
 };
 
 // Functions typedef
