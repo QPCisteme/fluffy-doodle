@@ -2,6 +2,7 @@
 #define DT_DRV_COMPAT cisteme_mpl460a
 
 // Include libs
+#include <stdio.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/spi.h>
@@ -327,7 +328,6 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
 static int pib_read(const struct device *dev, uint32_t register_id,
                     uint16_t len)
 {
-    struct mpl460a_data *drv_data = dev->data;
     const struct mpl460a_config *drv_config = dev->config;
 
     int ret;
