@@ -316,6 +316,8 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
     struct mpl460a_data *drv_data = dev->data;
     int ret;
 
+    gpio_pin_set_dt(&drv_config->txen, 1);
+
     drv_data->params.dataLength = len + 2;
     ret = fw_id_send(dev, PL460_G3_TX_PARAM, (uint8_t *)&drv_data->params, 40,
                      0, 0, true);
@@ -326,6 +328,8 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
     ret = fw_id_send(dev, PL460_G3_TX_DATA, data, len, 0, 0, true);
     if (ret < 0)
         return ret;
+
+    gpio_pin_set_dt(&drv_config->txen, 0);
 
     return 0;
 }
