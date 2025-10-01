@@ -319,7 +319,7 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
 
     gpio_pin_set_dt(&drv_config->txen, 1);
 
-    drv_data->params.dataLength = len + 2;
+    drv_data->params.dataLength = len;
     ret = fw_id_send(dev, PL460_G3_TX_PARAM, (uint8_t *)&drv_data->params, 40,
                      0, 0, true);
     if (ret < 0)
