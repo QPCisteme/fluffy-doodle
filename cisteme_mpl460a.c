@@ -211,8 +211,8 @@ static int boot_disable(const struct device *dev)
     uint8_t tab[4];
 
     // Clean CPUWAIT to start program
-    sys_put_le32(tab, 0x01010000);
-    ret = boot_write(dev, PL460_MISCR, PL460_WR, mpl460a_conv.tab, 4);
+    sys_put_le32(0x01010000, tab);
+    ret = boot_write(dev, PL460_MISCR, PL460_WR, tab, 4);
     if (ret < 0)
         return ret;
 
@@ -436,7 +436,7 @@ static int mpl460a_init(const struct device *dev)
     drv_data->params.rs2Blocks = 0;
     drv_data->params.delimiterType = 0;
 
-    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_INACTIVE);
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLE);
     gpio_init_callback(&drv_data->extin_cb_data, extin_IRQ,
                        BIT(drv_config->extin.pin));
     gpio_add_callback(drv_config->extin.port, &drv_data->extin_cb_data);
