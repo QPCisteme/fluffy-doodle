@@ -19,6 +19,8 @@ struct mpl460a_config
 // Data structure (READ-WRITE)
 struct mpl460a_data
 {
+    const struct device *dev;
+
     uint8_t nrst_state;
     uint8_t en_state;
 
