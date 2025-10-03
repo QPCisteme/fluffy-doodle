@@ -226,8 +226,8 @@ static int boot_disable(const struct device *dev)
     return 0;
 }
 
-static int fw_id_send(const struct device *dev, uint16_t id, uint8_t *tx,
-                      uint16_t tx_size, uint8_t *rx, uint16_t rx_size,
+static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
+                      uint8_t tx_size, uint16_t *rx, uint8_t rx_size,
                       bool write)
 {
     if (tx_size & 0x8000)
@@ -239,17 +239,17 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint8_t *tx,
     uint8_t rx_data[rx_size + 4];
 
     // Copy ID (LE)
-    sys_put_le16(id, &tx_data[0]);
+    sys_put_be16(id, &tx_data[0]);
     // Copy length (LE)
-    sys_put_le16(tx_size >> 1, &tx_data[2]);
+    sys_put_be16(tx_size, &tx_data[2]);
 
     // Update R/W bit
     if (write)
         tx_data[3] |= 0x80;
 
     // Copy payload (16-bit words in LE)
-    if (tx_size > 0)
-        memcpy(tx_data + 4, tx, tx_size);
+    for (int i = 0; i < tx_size; i++)
+        sys_put_be(tx + i, tx_data + 4 + 2 * i);
 
     // SPI communication
     struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = tx_size + 4};
@@ -280,9 +280,9 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint8_t *tx,
     if (header != PL460_FW_HEADER)
         return -2;
 
-    // Copy RX data if present
-    if (rx_size > 0)
-        memcpy(rx, rx_data + 4, rx_size);
+    // Copy payload (16-bit words in LE)
+    for (int i = 0; i < rx_size; i++)
+        sys_get_be(rx_data + 4 + 2 * i, rx);
 
     // Return events (LE)
     int events = sys_get_le16(&rx_data[2]);
@@ -292,21 +292,19 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint8_t *tx,
 static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
                          uint32_t *event_info)
 {
-    uint8_t rx_data[8];
-    uint16_t events = fw_id_send(dev, PL460_G3_STATUS, 0, 0, rx_data, 8, false);
+    uint16_t rx_data[4];
+    uint16_t events = fw_id_send(dev, PL460_G3_STATUS, 0, 0, rx_data, 4, false);
 
     if (events < 0)
         return events;
 
-    *timer_ref = (rx_data[2] << 24) | (rx_data[3] << 16) | (rx_data[0] << 8) |
-                 (rx_data[1]);
-    *event_info = (rx_data[6] << 24) | (rx_data[7] << 16) | (rx_data[4] << 8) |
-                  (rx_data[5]);
+    *timer_ref = (rx_data[1] << 16) | (rx_data[0]);
+    *event_info = (rx_data[2] << 16) | (rx_data[3]);
 
     return events;
 }
 
-static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
+static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
 {
     // Limit packet length
     if (len > 64)
@@ -320,7 +318,7 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len)
     gpio_pin_set_dt(&drv_config->txen, 1);
 
     drv_data->params.dataLength = len;
-    ret = fw_id_send(dev, PL460_G3_TX_PARAM, (uint8_t *)&drv_data->params, 40,
+    ret = fw_id_send(dev, PL460_G3_TX_PARAM, (uint16_t *)&drv_data->params, 20,
                      0, 0, true);
     if (ret < 0)
         return ret;
@@ -352,14 +350,10 @@ static int pib_read(const struct device *dev, uint32_t register_id,
                     uint16_t len)
 {
     int ret;
-    uint8_t tx[8];
+    uint16_t tx[4] = {(uint16_t)register_id & 0xffff,
+                      (uint16_t)(register_id >> 16), len, 0x0000};
 
-    sys_put_le16((uint16_t)register_id & 0xffff, tx);
-    sys_put_le16((uint16_t)(register_id >> 16), tx + 2);
-    sys_put_le16(len, tx + 4);
-    sys_put_le16(0x0000, tx + 6);
-
-    ret = fw_id_send(dev, PL460_G3_REG_INFO, tx, 8, 0, 0, true);
+    ret = fw_id_send(dev, PL460_G3_REG_INFO, tx, 4, 0, 0, true);
     if (ret < 0)
         return ret;
 
