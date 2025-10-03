@@ -386,7 +386,7 @@ static int pib_read(const struct device *dev, uint32_t register_id,
     sys_put_be16((uint16_t)(register_id >> 16), tx_data + 6);
     sys_put_be16(len, tx_data + 8);
 
-    struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = 10};
+        struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = 10};
     struct spi_buf_set tx_spi_data_set = {.buffers = &tx_spi_buf_data,
                                           .count = 1};
 
@@ -403,6 +403,16 @@ static int pib_read(const struct device *dev, uint32_t register_id,
     uint16_t header = sys_get_be16(&rx_data[0]);
     if (header != PL460_FW_HEADER)
         return -2;
+
+    printk("TX : ");
+    for (int i = 0; i < 10; i++)
+        printk("%.2x ", tx_data[i]);
+    printk("\r\n");
+
+    printk("RX : ");
+    for (int i = 0; i < 4; i++)
+        printk("%.2x ", rx_data[i]);
+    printk("\r\n");
 
     return 0;
 }
