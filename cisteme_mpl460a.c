@@ -241,7 +241,7 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
     // Copy ID (LE)
     sys_put_be16(id, tx_data);
     // Copy length (LE)
-    sys_put_be16(tx_size, tx_data + 2);
+    sys_put_be16(MAX(tx_size, rx_size), tx_data + 2);
 
     // Update R/W bit
     if (write)
@@ -318,8 +318,14 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
     gpio_pin_set_dt(&drv_config->txen, 1);
 
     drv_data->params.dataLength = len << 1;
-    ret = fw_id_send(dev, PL460_G3_TX_PARAM, (uint16_t *)&drv_data->params, 20,
-                     0, 0, true);
+    uint16_t tx_params[20];
+
+    tx_params[0] = (uint16_t)((drv_data->params.timeIni) & 0xffff);
+    tx_params[1] = (uint16_t)((drv_data->params.timeIni) >> 16);
+    tx_params[2] = drv_data->params.dataLength;
+    memcpy(tx_params + 3, ((uint8_t *)drv_data->params) + 6);
+
+    ret = fw_id_send(dev, PL460_G3_TX_PARAM, tx_params, 20, 0, 0, true);
     if (ret < 0)
         return ret;
 
@@ -351,9 +357,9 @@ static int pib_read(const struct device *dev, uint32_t register_id,
 {
     int ret;
     uint16_t tx[4] = {(uint16_t)register_id & 0xffff,
-                      (uint16_t)(register_id >> 16), len, 0x0000};
+                      (uint16_t)(register_id >> 16), len};
 
-    ret = fw_id_send(dev, PL460_G3_REG_INFO, tx, 4, 0, 0, true);
+    ret = fw_id_send(dev, PL460_G3_REG_INFO, tx, 3, 0, 4, true);
     if (ret < 0)
         return ret;
 
