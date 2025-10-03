@@ -323,7 +323,9 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
     tx_params[0] = (uint16_t)((drv_data->params.timeIni) & 0xffff);
     tx_params[1] = (uint16_t)((drv_data->params.timeIni) >> 16);
     tx_params[2] = drv_data->params.dataLength;
-    memcpy(tx_params + 3, ((uint8_t *)&drv_data->params) + 6, 34);
+    for (int i = 0; i < 17; i++)
+        tx_params[3 + i] =
+            sys_get_be16(((uint8_t *)&drv_data->params) + 6 + 2 * i);
 
     ret = fw_id_send(dev, PL460_G3_TX_PARAM, tx_params, 20, 0, 0, true);
     if (ret < 0)
