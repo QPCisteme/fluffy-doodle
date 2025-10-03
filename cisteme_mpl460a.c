@@ -227,8 +227,7 @@ static int boot_disable(const struct device *dev)
 
     k_msleep(1000);
 
-    // gpio_pin_interrupt_configure_dt(&drv_config->extin,
-    // GPIO_INT_EDGE_FALLING);
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
 
     return 0;
 }
@@ -314,29 +313,30 @@ static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
 void extin_IRQ(const struct device *dev, struct gpio_callback *cb,
                uint32_t pins)
 {
-    uint32_t timer_ref, event_info;
+    printk("IRQ!\r\n");
+    // uint32_t timer_ref, event_info;
 
-    int ret = fw_get_events(dev, &timer_ref, &event_info);
-    if (ret < 0)
-        return;
+    // int ret = fw_get_events(dev, &timer_ref, &event_info);
+    // if (ret < 0)
+    //     return;
 
-    printk("IRQ ! time = %d, events = %.4x, events_info = %.8x\r\n",
-           timer_ref / 1000000, ret, event_info);
+    // printk("IRQ ! time = %d, events = %.4x, events_info = %.8x\r\n",
+    //        timer_ref / 1000000, ret, event_info);
 
-    if (ret & PL460_TX_CFM_FLAG)
-    {
-        uint16_t rx_cfm[5];
-        ret = fw_id_send(dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 5, false);
-        if (ret < 0)
-            printk("Failed to recover TX_CFM\r\n");
-        else
-        {
-            uint32_t RMS = (rx_cfm[1] << 16) | rx_cfm[0];
-            uint32_t trans_time = (rx_cfm[3] << 16) | rx_cfm[2];
-            printk("CFM : rms = %.8x, t_time = %.8x, res = %.4x", RMS,
-                   trans_time, rx_cfm[4]);
-        }
-    }
+    // if (ret & PL460_TX_CFM_FLAG)
+    // {
+    //     uint16_t rx_cfm[5];
+    //     ret = fw_id_send(dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 5, false);
+    //     if (ret < 0)
+    //         printk("Failed to recover TX_CFM\r\n");
+    //     else
+    //     {
+    //         uint32_t RMS = (rx_cfm[1] << 16) | rx_cfm[0];
+    //         uint32_t trans_time = (rx_cfm[3] << 16) | rx_cfm[2];
+    //         printk("CFM : rms = %.8x, t_time = %.8x, res = %.4x", RMS,
+    //                trans_time, rx_cfm[4]);
+    //     }
+    // }
 }
 
 static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
