@@ -245,7 +245,7 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
 
     // Update R/W bit
     if (write)
-        tx_data[3] |= 0x80;
+        tx_data[2] |= 0x80;
 
     // Copy payload (16-bit words in LE)
     for (int i = 0; i < tx_size; i++)
@@ -266,12 +266,12 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
         return ret;
 
     printk("TX : ");
-    for (int i = 0; i < (tx_size + 4); i++)
+    for (int i = 0; i < (2 * tx_size + 4); i++)
         printk("%.2x ", tx_data[i]);
     printk("\r\n");
 
     printk("RX : ");
-    for (int i = 0; i < (rx_size + 4); i++)
+    for (int i = 0; i < (2 * rx_size + 4); i++)
         printk("%.2x ", rx_data[i]);
     printk("\r\n");
 
