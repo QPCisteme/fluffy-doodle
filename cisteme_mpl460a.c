@@ -223,6 +223,10 @@ static int boot_disable(const struct device *dev)
     if (ret < 0)
         return ret;
 
+    k_msleep(1000);
+
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
+
     return 0;
 }
 
@@ -318,6 +322,8 @@ void extin_IRQ(const struct device *dev, struct gpio_callback *cb,
 
     if (ret & PL460_TX_CFM_FLAG)
     {
+        gpio_pin_set_dt(&drv_config->txen, 0);
+
         uint16_t rx_cfm[5];
         ret = fw_id_send(dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 5, false);
         if (ret < 0)
@@ -345,11 +351,6 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
 
     gpio_pin_set_dt(&drv_config->txen, 1);
 
-    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
-    gpio_init_callback(&drv_data->extin_cb_data, extin_IRQ,
-                       BIT(drv_config->extin.pin));
-    gpio_add_callback(drv_config->extin.port, &drv_data->extin_cb_data);
-
     drv_data->params.dataLength = len << 1;
     uint16_t tx_params[20];
 
@@ -368,8 +369,6 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
     ret = fw_id_send(dev, PL460_G3_TX_DATA, data, len, 0, 0, true);
     if (ret < 0)
         return ret;
-
-    gpio_pin_set_dt(&drv_config->txen, 0);
 
     return 0;
 }
@@ -424,6 +423,9 @@ static int mpl460a_init(const struct device *dev)
     if (!gpio_is_ready_dt(&drv_config->extin))
         return -1;
 
+    if (!gpio_is_ready_dt(&drv_config->stby))
+        return -1;
+
     if (!spi_is_ready_dt(&drv_config->spi))
         return -1;
 
@@ -434,6 +436,10 @@ static int mpl460a_init(const struct device *dev)
         return ret;
 
     ret = gpio_pin_configure_dt(&drv_config->en, GPIO_OUTPUT_INACTIVE);
+    if (ret < 0)
+        return ret;
+
+    ret = gpio_pin_configure_dt(&drv_config->stby, GPIO_OUTPUT_INACTIVE);
     if (ret < 0)
         return ret;
 
@@ -458,7 +464,6 @@ static int mpl460a_init(const struct device *dev)
     drv_data->params.rs2Blocks = 0;
     drv_data->params.delimiterType = 0;
 
-    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLE);
     gpio_init_callback(&drv_data->extin_cb_data, extin_IRQ,
                        BIT(drv_config->extin.pin));
     gpio_add_callback(drv_config->extin.port, &drv_data->extin_cb_data);
