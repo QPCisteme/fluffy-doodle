@@ -37,7 +37,7 @@ typedef int (*mpl460a_boot_fw_cmd_t)(const struct device *dev,
                                      const uint8_t *data, const uint32_t size);
 typedef int (*mpl460a_set_cmd_t)(const struct device *dev, uint8_t state);
 typedef int (*mpl460a_cmd_t)(const struct device *dev);
-typedef int (*mpl460a_data_cmd_t)(const struct device *dev, uint8_t *data,
+typedef int (*mpl460a_data_cmd_t)(const struct device *dev, uint16_t *data,
                                   uint8_t len);
 
 typedef int (*mpl460a_pib_cmd_t)(const struct device *dev, uint32_t register_id,
@@ -190,10 +190,10 @@ static inline int z_impl_mpl460a_boot_disable(const struct device *dev)
     return api->mpl460a_boot_disable(dev);
 }
 
-__syscall int mpl460a_send(const struct device *dev, uint8_t *data,
+__syscall int mpl460a_send(const struct device *dev, uint16_t *data,
                            uint8_t len);
 
-static inline int z_impl_mpl460a_send(const struct device *dev, uint8_t *data,
+static inline int z_impl_mpl460a_send(const struct device *dev, uint16_t *data,
                                       uint8_t len)
 {
     const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
