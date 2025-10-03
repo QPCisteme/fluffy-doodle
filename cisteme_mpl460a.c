@@ -350,9 +350,6 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
 
     int ret;
 
-    gpio_pin_interrupt_configure_dt(&drv_config->extin,
-                                    GPIO_INT_EDGE_TO_ACTIVE);
-
     gpio_pin_set_dt(&drv_config->txen, 1);
 
     drv_data->params.dataLength = len << 1;
@@ -373,6 +370,9 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
     ret = fw_id_send(dev, PL460_G3_TX_DATA, data, len, 0, 0, true);
     if (ret < 0)
         return ret;
+
+    gpio_pin_interrupt_configure_dt(&drv_config->extin,
+                                    GPIO_INT_EDGE_TO_ACTIVE);
 
     return 0;
 }
