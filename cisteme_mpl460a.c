@@ -320,8 +320,8 @@ void extin_IRQ(const struct device *dev, struct gpio_callback *cb,
     if (ret < 0)
         return;
 
-    printk("IRQ ! time = %d, events = %.4x, events_info = %.8x\r\n",
-           timer_ref / 1000000, ret, event_info);
+    printk("IRQ ! time = %.8x, events = %.4x, events_info = %.8x\r\n",
+           timer_ref, ret, event_info);
 
     if (ret & PL460_TX_CFM_FLAG)
     {
