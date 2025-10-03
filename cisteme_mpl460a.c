@@ -467,7 +467,7 @@ static int mpl460a_init(const struct device *dev)
     drv_data->params.rs2Blocks = 0;
     drv_data->params.delimiterType = 0;
 
-    data->dev = dev;
+    drv_data->dev = dev;
 
     gpio_init_callback(&drv_data->extin_cb_data, extin_IRQ,
                        BIT(drv_config->extin.pin));
