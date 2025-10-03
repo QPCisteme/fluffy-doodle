@@ -235,13 +235,13 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
 
     const struct mpl460a_config *drv_config = dev->config;
 
-    uint8_t tx_data[tx_size + 4];
-    uint8_t rx_data[rx_size + 4];
+    uint8_t tx_data[tx_size * 2 + 4];
+    uint8_t rx_data[rx_size * 2 + 4];
 
     // Copy ID (LE)
-    sys_put_be16(id, &tx_data[0]);
+    sys_put_be16(id, tx_data);
     // Copy length (LE)
-    sys_put_be16(tx_size, &tx_data[2]);
+    sys_put_be16(tx_size, tx_data + 2);
 
     // Update R/W bit
     if (write)
@@ -252,11 +252,11 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
         sys_put_be16(*(tx + i), tx_data + 4 + 2 * i);
 
     // SPI communication
-    struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = tx_size + 4};
+    struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = tx_size * 2 + 4};
     struct spi_buf_set tx_spi_data_set = {.buffers = &tx_spi_buf_data,
                                           .count = 1};
 
-    struct spi_buf rx_spi_buf_data = {.buf = rx_data, .len = rx_size + 4};
+    struct spi_buf rx_spi_buf_data = {.buf = rx_data, .len = rx_size * 2 + 4};
     struct spi_buf_set rx_spi_data_set = {.buffers = &rx_spi_buf_data,
                                           .count = 1};
 
@@ -317,7 +317,7 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
 
     gpio_pin_set_dt(&drv_config->txen, 1);
 
-    drv_data->params.dataLength = len;
+    drv_data->params.dataLength = len << 1;
     ret = fw_id_send(dev, PL460_G3_TX_PARAM, (uint16_t *)&drv_data->params, 20,
                      0, 0, true);
     if (ret < 0)
