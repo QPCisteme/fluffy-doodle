@@ -249,7 +249,7 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
 
     // Copy payload (16-bit words in LE)
     for (int i = 0; i < tx_size; i++)
-        sys_put_be16(tx + i, tx_data + 4 + 2 * i);
+        sys_put_be16(*(tx + i), tx_data + 4 + 2 * i);
 
     // SPI communication
     struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = tx_size + 4};
@@ -282,7 +282,7 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
 
     // Copy payload (16-bit words in LE)
     for (int i = 0; i < rx_size; i++)
-        sys_get_be16(rx_data + 4 + 2 * i, rx);
+        rx[i] = sys_get_be16(rx_data + 4 + 2 * i);
 
     // Return events (LE)
     int events = sys_get_be16(&rx_data[2]);
