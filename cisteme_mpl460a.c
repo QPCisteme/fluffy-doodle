@@ -317,8 +317,8 @@ void extin_IRQ(const struct device *dev, struct gpio_callback *cb,
         CONTAINER_OF(cb, struct mpl460a_data, extin_cb_data);
 
     int ret = fw_get_events(data->dev, &timer_ref, &event_info);
-    if (ret < 0)
-        return;
+    // if (ret < 0)
+    //     return;
 
     printk("IRQ ! time = %.8x, events = %.4x, events_info = %.8x\r\n",
            timer_ref, ret, event_info);
