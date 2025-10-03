@@ -227,7 +227,8 @@ static int boot_disable(const struct device *dev)
 
     k_msleep(1000);
 
-    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
+    // gpio_pin_interrupt_configure_dt(&drv_config->extin,
+    // GPIO_INT_EDGE_FALLING);
 
     return 0;
 }
