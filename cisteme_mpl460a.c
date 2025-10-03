@@ -333,6 +333,9 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
 
     gpio_pin_interrupt_configure_dt(&drv_config->extin,
                                     GPIO_INT_EDGE_TO_ACTIVE);
+    gpio_init_callback(&drv_data->extin_cb_data, extin_IRQ,
+                       BIT(drv_config->extin.pin));
+    gpio_add_callback(drv_config->extin.port, &drv_data->extin_cb_data);
 
     // CMD 2 : données
     ret = fw_id_send(dev, PL460_G3_TX_DATA, data, len, 0, 0, true);
