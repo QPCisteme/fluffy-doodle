@@ -210,6 +210,8 @@ static int boot_disable(const struct device *dev)
     int ret;
     uint8_t tab[4];
 
+    const struct mpl460a_config *drv_config = dev->config;
+
     // Clean CPUWAIT to start program
     sys_put_le32(0x01010000, tab);
     ret = boot_write(dev, PL460_MISCR, PL460_WR, tab, 4);
@@ -322,8 +324,6 @@ void extin_IRQ(const struct device *dev, struct gpio_callback *cb,
 
     if (ret & PL460_TX_CFM_FLAG)
     {
-        gpio_pin_set_dt(&drv_config->txen, 0);
-
         uint16_t rx_cfm[5];
         ret = fw_id_send(dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 5, false);
         if (ret < 0)
