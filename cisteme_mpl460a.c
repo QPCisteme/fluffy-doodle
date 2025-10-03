@@ -354,17 +354,18 @@ void extin_IRQ(const struct device *dev, struct gpio_callback *cb,
            timer_ref / 1000000, ret, event_info);
 
     if (ret & PL460_TX_CFM_FLAG)
-        uint16_t rx_cfm[5];
-    int ret;
-    ret = fw_id_send(dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 5, false);
-    if (ret < 0)
-        printk("Failed to recover TX_CFM\r\n");
-    else
     {
-        uint32_t RMS = (rx_cfm[1] << 16) | rx_cfm[0];
-        uint32_t trans_time = (rx_cfm[3] << 16) | rx_cfm[2];
-        printk("CFM : rms = %.8x, t_time = %.8x, res = %.4x", RMS, trans_time,
-               rx_cfm[4]);
+        uint16_t rx_cfm[5];
+        ret = fw_id_send(dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 5, false);
+        if (ret < 0)
+            printk("Failed to recover TX_CFM\r\n");
+        else
+        {
+            uint32_t RMS = (rx_cfm[1] << 16) | rx_cfm[0];
+            uint32_t trans_time = (rx_cfm[3] << 16) | rx_cfm[2];
+            printk("CFM : rms = %.8x, t_time = %.8x, res = %.4x", RMS,
+                   trans_time, rx_cfm[4]);
+        }
     }
 }
 
