@@ -375,16 +375,11 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
 static int pib_read(const struct device *dev, uint32_t register_id,
                     uint16_t len)
 {
+    const struct mpl460a_config *drv_config = dev->config;
     int ret;
-    uint16_t tx[4] = {(uint16_t)register_id & 0xffff,
-                      (uint16_t)(register_id >> 16), len};
-
-    ret = fw_id_send(dev, PL460_G3_REG_INFO, tx, 3, 0, 0, true);
-    if (ret < 0)
-        return ret;
 
     // SPI communication
-    uint8_t tx_data[10];
+    uint8_t tx_data[10], rx_data[4];
     sys_put_be16(PL460_G3_REG_INFO, tx_data);
     sys_put_be16(0x8004, tx_data + 2);
     sys_put_be16((uint16_t)(register_id & 0xffff), tx_data + 4);
