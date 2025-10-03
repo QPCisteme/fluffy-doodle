@@ -394,7 +394,7 @@ static int pib_read(const struct device *dev, uint32_t register_id,
     struct spi_buf_set rx_spi_data_set = {.buffers = &rx_spi_buf_data,
                                           .count = 1};
 
-    int ret =
+    ret =
         spi_transceive_dt(&drv_config->spi, &tx_spi_data_set, &rx_spi_data_set);
     if (ret < 0)
         return ret;
