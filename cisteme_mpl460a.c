@@ -395,6 +395,19 @@ static int get_pib_value(const struct device *dev, uint16_t *value,
     return ret;
 }
 
+static int set_pib_value(const struct device *dev, uint32_t addr,
+                         uint16_t *value, uint16_t len)
+{
+    int ret = fw_id_send(dev, PL460_G3_REG_INFO, value, len, 0, 0, true);
+    if (ret < 0)
+    {
+        printk("Failed to write PIB\r\n");
+        return ret;
+    }
+
+    return ret;
+}
+
 static int pib_read(const struct device *dev, uint32_t register_id,
                     uint16_t len)
 {
@@ -456,6 +469,7 @@ static const struct mpl460a_api api = {
     .mpl460a_pib_read = &pib_read,
     .mpl460a_tx_confirm = &tx_confirm,
     .mpl460a_get_pib_value = &get_pib_value,
+    .mpl460a_set_pib_value = &set_pib_value,
 };
 
 // Init function (called at creation)
