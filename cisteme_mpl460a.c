@@ -398,6 +398,12 @@ static int get_pib_value(const struct device *dev, uint16_t *value,
 static int set_pib_value(const struct device *dev, uint32_t addr,
                          uint16_t *value, uint16_t len)
 {
+    uint16_t pib_tx[len + 3];
+    sys_put_le16((uint16_t)(register_id >> 16), pib_tx);
+    sys_put_le16((uint16_t)(register_id & 0x0fff), pib_tx + 2);
+    sys_put_le16(len, pib_tx + 4);
+    sys_put_le16(*value, pib_tx + 6);
+
     int ret = fw_id_send(dev, PL460_G3_REG_INFO, value, len, 0, 0, true);
     if (ret < 0)
     {
