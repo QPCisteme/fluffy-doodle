@@ -363,9 +363,12 @@ static int tx_confirm(const struct device *dev, uint32_t *RMS, uint32_t *t_time,
                       uint16_t *result)
 {
     uint16_t rx_cfm[5];
-    ret = fw_id_send(dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 5, false);
+    int ret = fw_id_send(dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 5, false);
     if (ret < 0)
+    {
         printk("Failed to recover TX_CFM\r\n");
+        return 0;
+    }
     else
     {
         *RMS = (rx_cfm[1] << 16) | rx_cfm[0];
@@ -375,6 +378,8 @@ static int tx_confirm(const struct device *dev, uint32_t *RMS, uint32_t *t_time,
         printk("CFM : rms = %.8x, t_time = %.8x, res = %.4x", *RMS, *t_time,
                *result);
     }
+
+    return ret;
 }
 
 static int pib_read(const struct device *dev, uint32_t register_id,
