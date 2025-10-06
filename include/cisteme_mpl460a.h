@@ -47,6 +47,9 @@ typedef int (*mpl460a_pib_cmd_t)(const struct device *dev, uint32_t register_id,
 
 typedef int (*mpl460a_txconf_cmd_t)(const struct device *dev, uint32_t *RMS,
                                     uint32_t *t_time, uint16_t *result);
+
+typedef int (*mpl460a_pib_val_cmd_t)(const struct device *dev, uint16_t *value,
+                                     uint16_t len);
 // API declaration
 __subsystem struct mpl460a_api
 {
@@ -69,6 +72,7 @@ __subsystem struct mpl460a_api
 
     mpl460a_pib_cmd_t mpl460a_pib_read;
     mpl460a_txconf_cmd_t mpl460a_tx_confirm;
+    mpl460a_pib_val_cmd_t mpl460a_get_pib_value;
 };
 
 __syscall int mpl460a_boot_write(const struct device *dev, uint32_t addr,
@@ -236,6 +240,20 @@ static inline int z_impl_mpl460a_tx_confirm(const struct device *dev,
         return -ENOSYS;
     }
     return api->mpl460a_tx_confirm(dev, RMS, t_time, result);
+}
+
+__syscall int mpl460a_get_pib_value(const struct device *dev, uint16_t *value,
+                                    uint16_t len);
+
+static inline int z_impl_mpl460a_get_pib_value(const struct device *dev,
+                                               uint16_t *value, uint16_t len)
+{
+    const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
+    if (api->mpl460a_get_pib_value == NULL)
+    {
+        return -ENOSYS;
+    }
+    return api->mpl460a_get_pib_value(dev, value, len);
 }
 
 // Include syscall

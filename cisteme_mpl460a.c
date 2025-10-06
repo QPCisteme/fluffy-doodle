@@ -367,7 +367,7 @@ static int tx_confirm(const struct device *dev, uint32_t *RMS, uint32_t *t_time,
     if (ret < 0)
     {
         printk("Failed to recover TX_CFM\r\n");
-        return 0;
+        return ret;
     }
     else
     {
@@ -377,6 +377,19 @@ static int tx_confirm(const struct device *dev, uint32_t *RMS, uint32_t *t_time,
 
         printk("CFM : rms = %.8x, t_time = %.8x, res = %.4x", *RMS, *t_time,
                *result);
+    }
+
+    return ret;
+}
+
+static int get_pib_value(const struct device *dev, uint16_t *value,
+                         uint16_t len)
+{
+    int ret = fw_id_send(dev, PL460_G3_REG_INFO, 0, 0, value, len, false);
+    if (ret < 0)
+    {
+        printk("Failed to read PIB\r\n");
+        return ret;
     }
 
     return ret;
@@ -442,6 +455,7 @@ static const struct mpl460a_api api = {
     .mpl460a_send = &fw_send,
     .mpl460a_pib_read = &pib_read,
     .mpl460a_tx_confirm = &tx_confirm,
+    .mpl460a_get_pib_value = &get_pib_value,
 };
 
 // Init function (called at creation)
