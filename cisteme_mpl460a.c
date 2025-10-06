@@ -322,21 +322,6 @@ void extin_IRQ(const struct device *dev, struct gpio_callback *cb,
 
     printk("IRQ ! time = %.8x, events = %.4x, events_info = %.8x\r\n",
            timer_ref, ret, event_info);
-
-    if (ret & PL460_TX_CFM_FLAG)
-    {
-        uint16_t rx_cfm[5];
-        ret = fw_id_send(dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 5, false);
-        if (ret < 0)
-            printk("Failed to recover TX_CFM\r\n");
-        else
-        {
-            uint32_t RMS = (rx_cfm[1] << 16) | rx_cfm[0];
-            uint32_t trans_time = (rx_cfm[3] << 16) | rx_cfm[2];
-            printk("CFM : rms = %.8x, t_time = %.8x, res = %.4x", RMS,
-                   trans_time, rx_cfm[4]);
-        }
-    }
 }
 
 static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
@@ -364,12 +349,32 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
     if (ret < 0)
         return ret;
 
+    k_msleep(10);
+
     // CMD 2 : données
     ret = fw_id_send(dev, PL460_G3_TX_DATA, data, len, 0, 0, true);
     if (ret < 0)
         return ret;
 
     return 0;
+}
+
+static int tx_confirm(const struct device *dev, uint32_t *RMS, uint32_t *t_time,
+                      uint16_t *result)
+{
+    uint16_t rx_cfm[5];
+    ret = fw_id_send(dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 5, false);
+    if (ret < 0)
+        printk("Failed to recover TX_CFM\r\n");
+    else
+    {
+        *RMS = (rx_cfm[1] << 16) | rx_cfm[0];
+        *t_time = (rx_cfm[3] << 16) | rx_cfm[2];
+        *result = rx_cfm[4];
+
+        printk("CFM : rms = %.8x, t_time = %.8x, res = %.4x", *RMS, *t_time,
+               *result);
+    }
 }
 
 static int pib_read(const struct device *dev, uint32_t register_id,
@@ -379,14 +384,15 @@ static int pib_read(const struct device *dev, uint32_t register_id,
     int ret;
 
     // SPI communication
-    uint8_t tx_data[10], rx_data[4];
+    uint8_t tx_data[12], rx_data[4];
     sys_put_be16(PL460_G3_REG_INFO, tx_data);
     sys_put_be16(0x8004, tx_data + 2);
     sys_put_be16((uint16_t)(register_id & 0xffff), tx_data + 4);
     sys_put_be16((uint16_t)(register_id >> 16), tx_data + 6);
     sys_put_be16(len, tx_data + 8);
+    sys_put_be16(0x0000, tx_data + 10);
 
-        struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = 10};
+    struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = 10};
     struct spi_buf_set tx_spi_data_set = {.buffers = &tx_spi_buf_data,
                                           .count = 1};
 
@@ -430,6 +436,7 @@ static const struct mpl460a_api api = {
     .mpl460a_boot_disable = &boot_disable,
     .mpl460a_send = &fw_send,
     .mpl460a_pib_read = &pib_read,
+    .mpl460a_tx_confirm = &tx_confirm,
 };
 
 // Init function (called at creation)
@@ -496,8 +503,7 @@ static int mpl460a_init(const struct device *dev)
 
     drv_data->dev = dev;
 
-    gpio_pin_interrupt_configure_dt(&drv_config->extin,
-                                    GPIO_INT_EDGE_TO_ACTIVE);
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
     gpio_init_callback(&drv_data->extin_cb_data, extin_IRQ,
                        BIT(drv_config->extin.pin));
     gpio_add_callback(drv_config->extin.port, &drv_data->extin_cb_data);
