@@ -391,14 +391,13 @@ static int pib_read(const struct device *dev, uint32_t register_id,
     // SPI communication
     uint8_t tx_data[12], rx_data[4];
     sys_put_be16(PL460_G3_REG_INFO, tx_data);
-    sys_put_be16(0x0004, tx_data + 2);
-    sys_put_be32(register_id, tx_data + 4);
-    // sys_put_be16((uint16_t)(register_id & 0xffff), tx_data + 4);
-    // sys_put_be16((uint16_t)(register_id >> 16), tx_data + 6);
-    sys_put_be16(len, tx_data + 8);
-    sys_put_be16(0x0000, tx_data + 10);
+    sys_put_be16(0x8004, tx_data + 2);
+    sys_put_le16((uint16_t)(register_id >> 16), tx_data + 4);
+    sys_put_le16((uint16_t)(register_id & 0x0fff), tx_data + 6);
+    sys_put_le16(len, tx_data + 8);
+    sys_put_le16(0x0000, tx_data + 10);
 
-    struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = 10};
+    struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = 12};
     struct spi_buf_set tx_spi_data_set = {.buffers = &tx_spi_buf_data,
                                           .count = 1};
 
@@ -417,7 +416,7 @@ static int pib_read(const struct device *dev, uint32_t register_id,
         return -2;
 
     printk("TX : ");
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 12; i++)
         printk("%.2x ", tx_data[i]);
     printk("\r\n");
 
