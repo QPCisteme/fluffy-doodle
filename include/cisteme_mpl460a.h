@@ -263,7 +263,7 @@ static inline int z_impl_mpl460a_get_pib_value(const struct device *dev,
 __syscall int mpl460a_set_pib_value(const struct device *dev, uint32_t addr,
                                     uint16_t *value, uint16_t len);
 
-static inline int z_impl_mpl460a_set_pib_value(const struct device *dev, ,
+static inline int z_impl_mpl460a_set_pib_value(const struct device *dev,
                                                uint32_t addr, uint16_t *value,
                                                uint16_t len)
 {
