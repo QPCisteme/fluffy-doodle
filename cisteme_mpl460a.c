@@ -396,21 +396,25 @@ static int get_pib_value(const struct device *dev, uint16_t *value,
 }
 
 static int set_pib_value(const struct device *dev, uint32_t addr,
-                         uint8_t *value, uint16_t len)
+                         uint16_t *value, uint16_t len)
 {
     const struct mpl460a_config *drv_config = dev->config;
     int ret;
 
+    uint16_t size = len;
     // SPI communication
-    uint8_t tx_data[len + 10], rx_data[4];
+    if (len & 0x01)
+        size++;
+
+    uint8_t tx_data[size + 10], rx_data[4];
     sys_put_be16(PL460_G3_REG_INFO, tx_data);
     sys_put_be16(0x8004, tx_data + 2);
     sys_put_le16((uint16_t)(addr >> 16), tx_data + 4);
     sys_put_le16((uint16_t)(addr & 0x0fff), tx_data + 6);
     sys_put_le16(len, tx_data + 8);
-    memcpy(tx_data + 10, value, len);
+    sys_put_le16(*value, tx_data + 10);
 
-    struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = len + 10};
+    struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = size + 10};
     struct spi_buf_set tx_spi_data_set = {.buffers = &tx_spi_buf_data,
                                           .count = 1};
 
