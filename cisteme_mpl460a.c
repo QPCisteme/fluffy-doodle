@@ -391,7 +391,7 @@ static int pib_read(const struct device *dev, uint32_t register_id,
     // SPI communication
     uint8_t tx_data[12], rx_data[4];
     sys_put_be16(PL460_G3_REG_INFO, tx_data);
-    sys_put_be16(0x8004, tx_data + 2);
+    sys_put_be16(0x0004, tx_data + 2);
     sys_put_be16((uint16_t)(register_id & 0xffff), tx_data + 4);
     sys_put_be16((uint16_t)(register_id >> 16), tx_data + 6);
     sys_put_be16(len, tx_data + 8);
