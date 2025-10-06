@@ -52,7 +52,7 @@ typedef int (*mpl460a_pib_val_cmd_t)(const struct device *dev, uint16_t *value,
                                      uint16_t len);
 
 typedef int (*mpl460a_pib2_val_cmd_t)(const struct device *dev, uint32_t addr,
-                                      uint8_t *value, uint16_t len);
+                                      uint16_t *value, uint16_t len);
 // API declaration
 __subsystem struct mpl460a_api
 {
@@ -261,10 +261,10 @@ static inline int z_impl_mpl460a_get_pib_value(const struct device *dev,
 }
 
 __syscall int mpl460a_set_pib_value(const struct device *dev, uint32_t addr,
-                                    uint8_t *value, uint16_t len);
+                                    uint16_t *value, uint16_t len);
 
 static inline int z_impl_mpl460a_set_pib_value(const struct device *dev,
-                                               uint32_t addr, uint8_t *value,
+                                               uint32_t addr, uint16_t *value,
                                                uint16_t len)
 {
     const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
