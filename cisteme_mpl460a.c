@@ -420,7 +420,7 @@ static int pib_write(const struct device *dev, uint32_t addr, uint16_t len)
 
     uint8_t tx_data[10], rx_data[4];
     sys_put_be16(PL460_G3_REG_INFO, tx_data);
-    sys_put_be16(0x8003 + (size >> 1), tx_data + 2);
+    sys_put_be16(0x8003, tx_data + 2);
     sys_put_le16((uint16_t)(addr >> 16), tx_data + 4);
     sys_put_le16((uint16_t)(addr & 0x0fff), tx_data + 6);
     sys_put_le16((1 << 10) | len, tx_data + 8);
