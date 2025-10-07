@@ -278,7 +278,7 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
     printk("\r\n");
 
     printk("RX : ");
-    *p = (uint8_t *)rx;
+    p = (uint8_t *)rx;
     for (int i = 0; i < rx_size; i++)
     {
         printk("%.02x ", *(p + i));
@@ -397,7 +397,7 @@ static int get_pib(const struct device *dev, uint32_t register_id,
                    uint16_t *value, uint16_t len)
 {
     const struct mpl460a_config *drv_config = dev->config;
-    const struct mpl460a_data *drv_data = dev->data;
+    struct mpl460a_data *drv_data = dev->data;
 
     int ret;
 
