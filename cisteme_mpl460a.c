@@ -320,6 +320,7 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
         return -1;
 
     struct mpl460a_data *drv_data = dev->data;
+    const struct mpl460a_config *drv_config = dev->config;
 
     int ret;
 
