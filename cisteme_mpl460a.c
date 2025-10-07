@@ -425,7 +425,7 @@ static int pib_write(const struct device *dev, uint32_t addr, uint16_t len)
     sys_put_le16((uint16_t)(addr & 0x0fff), tx_data + 6);
     sys_put_le16((1 << 10) | len, tx_data + 8);
 
-    struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = size + 10};
+    struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = 10};
     struct spi_buf_set tx_spi_data_set = {.buffers = &tx_spi_buf_data,
                                           .count = 1};
 
