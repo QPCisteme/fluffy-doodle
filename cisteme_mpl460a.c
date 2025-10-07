@@ -291,8 +291,9 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
 static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
                          uint32_t *event_info)
 {
-    uint16_t rx_data[4];
-    uint16_t events = fw_id_send(dev, PL460_G3_STATUS, 0, 0, rx_data, 8, false);
+    uint8_t rx_data[8];
+    uint16_t events =
+        fw_id_send(dev, PL460_G3_STATUS, 0, 0, (uint16_t *)rx_data, 8, false);
 
     if (events < 0)
         return events;
@@ -328,6 +329,8 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
     if (ret < 0)
         return ret;
 
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
+
     // Send TX_DATA
     ret = fw_id_send(dev, PL460_G3_TX_DATA, data, len, 0, 0, true);
     if (ret < 0)
@@ -337,6 +340,8 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
     {
         return -3;
     }
+
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLE);
 
     // Read event
     uint32_t timer_ref, event_info;
@@ -423,6 +428,8 @@ static int get_pib(const struct device *dev, uint32_t register_id,
     struct spi_buf_set rx_spi_data_set = {.buffers = &rx_spi_buf_data,
                                           .count = 1};
 
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
+
     ret =
         spi_transceive_dt(&drv_config->spi, &tx_spi_data_set, &rx_spi_data_set);
     if (ret < 0)
@@ -437,6 +444,8 @@ static int get_pib(const struct device *dev, uint32_t register_id,
     {
         return -3;
     }
+
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLE);
 
     // Read event to get pib len
     uint32_t timer_ref, event_info;
