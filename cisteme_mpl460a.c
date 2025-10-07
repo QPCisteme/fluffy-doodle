@@ -408,7 +408,8 @@ static int set_pib_value(const struct device *dev, uint16_t *value,
     return ret;
 }
 
-static int pib_write(const struct device *dev, uint32_t addr, uint16_t len)
+static int pib_write(const struct device *dev, uint32_t register_id,
+                     uint16_t *value, uint16_t len)
 {
     const struct mpl460a_config *drv_config = dev->config;
     int ret;
@@ -421,11 +422,13 @@ static int pib_write(const struct device *dev, uint32_t addr, uint16_t len)
     uint8_t tx_data[10], rx_data[4];
     sys_put_be16(PL460_G3_REG_INFO, tx_data);
     sys_put_be16(0x8003, tx_data + 2);
-    sys_put_le16((uint16_t)(addr >> 16), tx_data + 4);
-    sys_put_le16((uint16_t)(addr & 0x0fff), tx_data + 6);
+    sys_put_le16((uint16_t)(register_id >> 16), tx_data + 4);
+    sys_put_le16((uint16_t)(register_id & 0x0fff), tx_data + 6);
     sys_put_le16((1 << 10) | len, tx_data + 8);
+    for (int i = 0; i < (size >> 1); i++)
+        sys_put_le16(*(value + i), tx_data + 10 + 2 * i);
 
-    struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = 10};
+    struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = 10 + size};
     struct spi_buf_set tx_spi_data_set = {.buffers = &tx_spi_buf_data,
                                           .count = 1};
 
@@ -444,7 +447,7 @@ static int pib_write(const struct device *dev, uint32_t addr, uint16_t len)
         return -2;
 
     printk("TX : ");
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < (10 + size); i++)
         printk("%.2x ", tx_data[i]);
     printk("\r\n");
 
