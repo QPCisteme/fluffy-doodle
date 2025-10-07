@@ -419,7 +419,7 @@ static int pib_write(const struct device *dev, uint32_t register_id,
     if (len & 0x01)
         size++;
 
-    uint8_t tx_data[10], rx_data[4];
+    uint8_t tx_data[10 + size], rx_data[4];
     sys_put_be16(PL460_G3_REG_INFO, tx_data);
     sys_put_be16(0x8003, tx_data + 2);
     sys_put_le16((uint16_t)(register_id >> 16), tx_data + 4);
