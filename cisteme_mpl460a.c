@@ -371,32 +371,15 @@ static int set_pib(const struct device *dev, uint32_t register_id,
     if (len & 0x01)
         size++;
 
-    uint8_t tx_data[10 + size], rx_data[4];
-    sys_put_be16(PL460_G3_REG_INFO, tx_data);
-    sys_put_be16(0x8003 + (size >> 1), tx_data + 2);
-    sys_put_le16((uint16_t)(register_id >> 16), tx_data + 4);
-    sys_put_le16((uint16_t)(register_id & 0x0fff), tx_data + 6);
-    sys_put_le16((1 << 10) | len, tx_data + 8);
-    for (int i = 0; i < (size >> 1); i++)
-        sys_put_le16(*(value + i), tx_data + 10 + 2 * i);
+    uint16_t tx_data[3 + (len >> 1)];
+    tx_data[0] = (uint16_t)(register_id >> 16);
+    tx_data[1] = (uint16_t)(register_id & 0x0fff);
+    tx_data[2] = (1 << 10) | len;
+    memcpy(tx_data + 3, value, len >> 1);
 
-    struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = 10 + size};
-    struct spi_buf_set tx_spi_data_set = {.buffers = &tx_spi_buf_data,
-                                          .count = 1};
-
-    struct spi_buf rx_spi_buf_data = {.buf = rx_data, .len = 4};
-    struct spi_buf_set rx_spi_data_set = {.buffers = &rx_spi_buf_data,
-                                          .count = 1};
-
-    ret =
-        spi_transceive_dt(&drv_config->spi, &tx_spi_data_set, &rx_spi_data_set);
+    ret = fw_id_send(dev, PL460_G3_REG_INFO, tx_data, len >> 1, 0, 0, true);
     if (ret < 0)
         return ret;
-
-    // Check FW header
-    uint16_t header = sys_get_be16(&rx_data[0]);
-    if (header != PL460_FW_HEADER)
-        return -2;
 
     return ret;
 }
@@ -409,14 +392,9 @@ static int get_pib(const struct device *dev, uint32_t register_id,
 
     int ret;
 
-    uint16_t size = len;
-    // SPI communication
-    if (len & 0x01)
-        size++;
-
     // Send register_id, len and dummy
     uint16_t tx_data[4] = {(uint16_t)(register_id >> 16),
-                           (uint16_t)(register_id & 0x0fff), size, 0x0000};
+                           (uint16_t)(register_id & 0x0fff), len, 0x0000};
 
     gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
 
