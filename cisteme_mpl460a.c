@@ -210,8 +210,6 @@ static int boot_disable(const struct device *dev)
     int ret;
     uint8_t tab[4];
 
-    const struct mpl460a_config *drv_config = dev->config;
-
     // Clean CPUWAIT to start program
     sys_put_le32(0x01010000, tab);
     ret = boot_write(dev, PL460_MISCR, PL460_WR, tab, 4);
@@ -234,62 +232,58 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
                       uint8_t tx_size, uint16_t *rx, uint8_t rx_size,
                       bool write)
 {
-    if (tx_size & 0x8000)
-        return -1;
-
     const struct mpl460a_config *drv_config = dev->config;
 
-    uint8_t tx_data[tx_size * 2 + 4];
-    uint8_t rx_data[rx_size * 2 + 4];
+    uint8_t tx_header[4];
+    uint8_t rx_header[4];
 
-    // Copy ID (LE)
-    sys_put_be16(id, tx_data);
-    // Copy length (LE)
-    sys_put_be16(MAX(tx_size, rx_size), tx_data + 2);
+    // Copy ID (BE)
+    sys_put_be16(id, tx_header);
+    // Copy length (BE)
+    sys_put_be16(MAX(tx_size, rx_size), tx_header + 2);
 
     // Update R/W bit
     if (write)
-        tx_data[2] |= 0x80;
-
-    // Copy payload (16-bit words in LE)
-    for (int i = 0; i < tx_size; i++)
-        sys_put_be16(*(tx + i), tx_data + 4 + 2 * i);
+        tx_header[2] |= 0x80;
 
     // SPI communication
-    struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = tx_size * 2 + 4};
-    struct spi_buf_set tx_spi_data_set = {.buffers = &tx_spi_buf_data,
-                                          .count = 1};
+    struct spi_buf tx_spi_buf_header = {.buf = tx_data, .len = 4};
+    struct spi_buf tx_spi_buf_data = {.buf = (uint8_t *)tx, .len = tx_size};
+    struct spi_buf_set tx_spi_data_set = {
+        .buffers = {tx_spi_buf_header, tx_spi_buf_data}, .count = 2};
 
-    struct spi_buf rx_spi_buf_data = {.buf = rx_data, .len = rx_size * 2 + 4};
-    struct spi_buf_set rx_spi_data_set = {.buffers = &rx_spi_buf_data,
-                                          .count = 1};
+    struct spi_buf rx_spi_buf_data = {.buf = rx_header, .len = 4};
+    struct spi_buf rx_spi_buf_data = {.buf = (uint8_t *)rx, .len = rx_size};
+    struct spi_buf_set rx_spi_data_set = {
+        .buffers = {rx_spi_buf_header, rx_spi_buf_data}, .count = 2};
 
     int ret =
         spi_transceive_dt(&drv_config->spi, &tx_spi_data_set, &rx_spi_data_set);
     if (ret < 0)
         return ret;
 
-    printk("TX : ");
-    for (int i = 0; i < (2 * tx_size + 4); i++)
-        printk("%.2x ", tx_data[i]);
-    printk("\r\n");
-
-    printk("RX : ");
-    for (int i = 0; i < (2 * rx_size + 4); i++)
-        printk("%.2x ", rx_data[i]);
-    printk("\r\n");
-
     // Check FW header
-    uint16_t header = sys_get_be16(&rx_data[0]);
+    uint16_t header = sys_get_be16(&rx_header[0]);
     if (header != PL460_FW_HEADER)
         return -2;
 
-    // Copy payload (16-bit words in LE)
-    for (int i = 0; i < rx_size; i++)
-        rx[i] = sys_get_be16(rx_data + 4 + 2 * i);
-
     // Return events (LE)
-    int events = sys_get_be16(&rx_data[2]);
+    int events = sys_get_be16(&rx_header[2]);
+
+    printk("TX : ");
+    for (int i = 0; i < tx_size; i++)
+    {
+        printk("%.2x ", (uint8_t *)(tx + i));
+    }
+    printk("\r\n");
+
+    printk("RX : ");
+    for (int i = 0; i < rx_size; i++)
+    {
+        printk("%.2x ", (uint8_t *)(rx + i));
+    }
+    printk("\r\n");
+
     return events;
 }
 
@@ -297,7 +291,7 @@ static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
                          uint32_t *event_info)
 {
     uint16_t rx_data[4];
-    uint16_t events = fw_id_send(dev, PL460_G3_STATUS, 0, 0, rx_data, 4, false);
+    uint16_t events = fw_id_send(dev, PL460_G3_STATUS, 0, 0, rx_data, 8, false);
 
     if (events < 0)
         return events;
@@ -316,12 +310,7 @@ void extin_IRQ(const struct device *dev, struct gpio_callback *cb,
     struct mpl460a_data *data =
         CONTAINER_OF(cb, struct mpl460a_data, extin_cb_data);
 
-    int ret = fw_get_events(data->dev, &timer_ref, &event_info);
-    // if (ret < 0)
-    //     return;
-
-    printk("IRQ ! time = %.8x, events = %.4x, events_info = %.8x\r\n",
-           timer_ref, ret, event_info);
+    k_sem_give(&data->isr_sem);
 }
 
 static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
@@ -331,91 +320,58 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
         return -1;
 
     struct mpl460a_data *drv_data = dev->data;
-    const struct mpl460a_config *drv_config = dev->config;
 
     int ret;
 
-    drv_data->params.dataLength = len << 1;
-    uint16_t tx_params[20];
-
-    tx_params[0] = (uint16_t)((drv_data->params.timeIni) & 0xffff);
-    tx_params[1] = (uint16_t)((drv_data->params.timeIni) >> 16);
-    tx_params[2] = drv_data->params.dataLength;
-    for (int i = 0; i < 17; i++)
-        tx_params[3 + i] =
-            sys_get_le16(((uint8_t *)&drv_data->params) + 6 + 2 * i);
-
-    ret = fw_id_send(dev, PL460_G3_TX_PARAM, tx_params, 20, 0, 0, true);
+    // Send TX_PARAMS
+    ret = fw_id_send(dev, PL460_G3_TX_PARAM, (uint16_t *)&drv_data->params, 20,
+                     0, 0, true);
     if (ret < 0)
         return ret;
 
-    k_msleep(10);
-
-    // CMD 2 : données
+    // Send TX_DATA
     ret = fw_id_send(dev, PL460_G3_TX_DATA, data, len, 0, 0, true);
     if (ret < 0)
         return ret;
 
-    return 0;
-}
+    // Wait for IRQ
+    uint16_t timeout = 0xFFFF;
+    while (!k_sem_take(&drv_data->isr_sem))
+    {
+        if (timeout-- == 0)
+            return -3;
+    }
 
-static int tx_confirm(const struct device *dev, uint32_t *RMS, uint32_t *t_time,
-                      uint16_t *result)
-{
+    // Wait for IRQ
+    uint16_t timeout = 0xFFFF;
+    while (!k_sem_take(&drv_data->isr_sem))
+    {
+        if (timeout-- == 0)
+            return -3;
+    }
+
+    // Read event
+    uint32_t timer_ref, event_info;
+    int ret = fw_get_events(data->dev, &timer_ref, &event_info);
+    if (!(ret & 0x0001))
+        return ret;
+
+    // Check TX_CONFIRM
     uint16_t rx_cfm[5];
     int ret = fw_id_send(dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 5, false);
     if (ret < 0)
-    {
-        printk("Failed to recover TX_CFM\r\n");
         return ret;
-    }
-    else
-    {
-        *RMS = (rx_cfm[1] << 16) | rx_cfm[0];
-        *t_time = (rx_cfm[3] << 16) | rx_cfm[2];
-        *result = rx_cfm[4];
 
-        printk("CFM : rms = %.8x, t_time = %.8x, res = %.4x", *RMS, *t_time,
-               *result);
-    }
-
-    return ret;
+    return rx_cfm[4];
 }
 
-static int get_pib_value(const struct device *dev, uint16_t *value,
-                         uint16_t len)
-{
-    int ret = fw_id_send(dev, PL460_G3_REG_INFO, 0, 0, value, len, false);
-    if (ret < 0)
-    {
-        printk("Failed to read PIB\r\n");
-        return ret;
-    }
-
-    return ret;
-}
-
-static int set_pib_value(const struct device *dev, uint16_t *value,
-                         uint16_t len)
-{
-    int ret = fw_id_send(dev, PL460_G3_REG_INFO, value, len, 0, 0, true);
-    if (ret < 0)
-    {
-        printk("Failed to read PIB\r\n");
-        return ret;
-    }
-
-    return ret;
-}
-
-static int pib_write(const struct device *dev, uint32_t register_id,
-                     uint16_t *value, uint16_t len)
+static int set_pib(const struct device *dev, uint32_t register_id,
+                   uint16_t *value, uint16_t len)
 {
     const struct mpl460a_config *drv_config = dev->config;
     int ret;
 
     uint16_t size = len;
-    // SPI communication
     if (len & 0x01)
         size++;
 
@@ -446,32 +402,29 @@ static int pib_write(const struct device *dev, uint32_t register_id,
     if (header != PL460_FW_HEADER)
         return -2;
 
-    printk("TX : ");
-    for (int i = 0; i < (10 + size); i++)
-        printk("%.2x ", tx_data[i]);
-    printk("\r\n");
-
-    printk("RX : ");
-    for (int i = 0; i < 4; i++)
-        printk("%.2x ", rx_data[i]);
-    printk("\r\n");
-
     return ret;
 }
 
-static int pib_read(const struct device *dev, uint32_t register_id,
-                    uint16_t len)
+static int get_pib(const struct device *dev, uint32_t register_id,
+                   uint16_t *value uint16_t len)
 {
     const struct mpl460a_config *drv_config = dev->config;
+    const struct mpl460a_data *drv_data = dev->data;
+
     int ret;
 
+    uint16_t size = len;
     // SPI communication
+    if (len & 0x01)
+        size++;
+
+    // Send register_id, len and dummy
     uint8_t tx_data[12], rx_data[4];
     sys_put_be16(PL460_G3_REG_INFO, tx_data);
     sys_put_be16(0x8004, tx_data + 2);
     sys_put_le16((uint16_t)(register_id >> 16), tx_data + 4);
     sys_put_le16((uint16_t)(register_id & 0x0fff), tx_data + 6);
-    sys_put_le16(len, tx_data + 8);
+    sys_put_le16(size >> 1, tx_data + 8);
     sys_put_le16(0x0000, tx_data + 10);
 
     struct spi_buf tx_spi_buf_data = {.buf = tx_data, .len = 12};
@@ -492,36 +445,47 @@ static int pib_read(const struct device *dev, uint32_t register_id,
     if (header != PL460_FW_HEADER)
         return -2;
 
-    printk("TX : ");
-    for (int i = 0; i < 12; i++)
-        printk("%.2x ", tx_data[i]);
-    printk("\r\n");
+    // Wait for IRQ
+    uint16_t timeout = 0xFFFF;
+    while (!k_sem_take(&drv_data->isr_sem))
+    {
+        if (timeout-- == 0)
+            return -3;
+    }
 
-    printk("RX : ");
-    for (int i = 0; i < 4; i++)
-        printk("%.2x ", rx_data[i]);
-    printk("\r\n");
+    // Read event to get pib len
+    uint32_t timer_ref, event_info;
+    int ret = fw_get_events(data->dev, &timer_ref, &event_info);
+    if (ret < 0)
+        return ret;
 
-    return 0;
+    // Read PIB value
+    ret = fw_id_send(dev, PL460_G3_REG_INFO, 0, 0, value,
+                     event_info == 1 ? 0x01 : event_info >> 1, false);
+    if (ret < 0)
+        return ret;
+
+    return ret;
 }
 
 // Fill API with functions
 static const struct mpl460a_api api = {
     .mpl460a_boot_write = &boot_write,
     .mpl460a_boot_read = &boot_read,
+
     .mpl460a_boot_write_fw = &boot_write_fw,
     .mpl460a_boot_check_fw = &boot_check_fw,
+
     .mpl460a_set_nrst = &set_nrst,
     .mpl460a_set_en = &set_en,
+
     .mpl460a_boot_enable = &boot_enable,
-    .mpl460a_get_events = &fw_get_events,
     .mpl460a_boot_disable = &boot_disable,
+
+    .mpl460a_get_events = &fw_get_events,
     .mpl460a_send = &fw_send,
-    .mpl460a_pib_read = &pib_read,
-    .mpl460a_pib_write = &pib_write,
-    .mpl460a_tx_confirm = &tx_confirm,
-    .mpl460a_get_pib_value = &get_pib_value,
-    .mpl460a_set_pib_value = &set_pib_value,
+    .mpl460a_get_pib = &get_pib,
+    .mpl460a_set_pib = &set_pib,
 };
 
 // Init function (called at creation)
@@ -587,11 +551,13 @@ static int mpl460a_init(const struct device *dev)
     drv_data->params.delimiterType = 0;
 
     drv_data->dev = dev;
+    k_sem_init(&drv_data->isr_sem, 0, 1);
 
     gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLE);
     gpio_init_callback(&drv_data->extin_cb_data, extin_IRQ,
                        BIT(drv_config->extin.pin));
     gpio_add_callback(drv_config->extin.port, &drv_data->extin_cb_data);
+
     return 0;
 }
 
