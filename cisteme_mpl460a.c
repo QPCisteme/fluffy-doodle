@@ -247,15 +247,14 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
         tx_header[2] |= 0x80;
 
     // SPI communication
-    struct spi_buf tx_spi_buf_header = {.buf = tx_data, .len = 4};
-    struct spi_buf tx_spi_buf_data = {.buf = (uint8_t *)tx, .len = tx_size};
-    struct spi_buf_set tx_spi_data_set = {
-        .buffers = {tx_spi_buf_header, tx_spi_buf_data}, .count = 2};
+    struct spi_buf tx_spi_buf[2] = {{.buf = tx_header, .len = 4},
+                                    {.buf = (uint8_t *)tx, .len = tx_size}};
+    struct spi_buf_set tx_spi_data_set = {.buffers = tx_spi_buf, .count = 2};
 
-    struct spi_buf rx_spi_buf_data = {.buf = rx_header, .len = 4};
-    struct spi_buf rx_spi_buf_data = {.buf = (uint8_t *)rx, .len = rx_size};
-    struct spi_buf_set rx_spi_data_set = {
-        .buffers = {rx_spi_buf_header, rx_spi_buf_data}, .count = 2};
+    // RX buffers
+    struct spi_buf rx_spi_buf[2] = {{.buf = rx_header, .len = 4},
+                                    {.buf = (uint8_t *)rx, .len = rx_size}};
+    struct spi_buf_set rx_spi_data_set = {.buffers = rx_spi_buf, .count = 2};
 
     int ret =
         spi_transceive_dt(&drv_config->spi, &tx_spi_data_set, &rx_spi_data_set);
@@ -271,16 +270,18 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
     int events = sys_get_be16(&rx_header[2]);
 
     printk("TX : ");
+    uint8_t *p = (uint8_t *)tx;
     for (int i = 0; i < tx_size; i++)
     {
-        printk("%.2x ", (uint8_t *)(tx + i));
+        printk("%.02x ", *(p + i));
     }
     printk("\r\n");
 
     printk("RX : ");
+    uint8_t *p = (uint8_t *)rx;
     for (int i = 0; i < rx_size; i++)
     {
-        printk("%.2x ", (uint8_t *)(rx + i));
+        printk("%.02x ", *(p + i));
     }
     printk("\r\n");
 
@@ -305,8 +306,6 @@ static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
 void extin_IRQ(const struct device *dev, struct gpio_callback *cb,
                uint32_t pins)
 {
-    uint32_t timer_ref, event_info;
-
     struct mpl460a_data *data =
         CONTAINER_OF(cb, struct mpl460a_data, extin_cb_data);
 
@@ -334,31 +333,20 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
     if (ret < 0)
         return ret;
 
-    // Wait for IRQ
-    uint16_t timeout = 0xFFFF;
-    while (!k_sem_take(&drv_data->isr_sem))
+    if (k_sem_take(&drv_data->isr_sem, K_MSEC(10)) != 0)
     {
-        if (timeout-- == 0)
-            return -3;
-    }
-
-    // Wait for IRQ
-    uint16_t timeout = 0xFFFF;
-    while (!k_sem_take(&drv_data->isr_sem))
-    {
-        if (timeout-- == 0)
-            return -3;
+        return -3;
     }
 
     // Read event
     uint32_t timer_ref, event_info;
-    int ret = fw_get_events(data->dev, &timer_ref, &event_info);
+    ret = fw_get_events(dev, &timer_ref, &event_info);
     if (!(ret & 0x0001))
         return ret;
 
     // Check TX_CONFIRM
     uint16_t rx_cfm[5];
-    int ret = fw_id_send(dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 5, false);
+    ret = fw_id_send(dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 5, false);
     if (ret < 0)
         return ret;
 
@@ -406,7 +394,7 @@ static int set_pib(const struct device *dev, uint32_t register_id,
 }
 
 static int get_pib(const struct device *dev, uint32_t register_id,
-                   uint16_t *value uint16_t len)
+                   uint16_t *value, uint16_t len)
 {
     const struct mpl460a_config *drv_config = dev->config;
     const struct mpl460a_data *drv_data = dev->data;
@@ -445,12 +433,9 @@ static int get_pib(const struct device *dev, uint32_t register_id,
     if (header != PL460_FW_HEADER)
         return -2;
 
-    // Wait for IRQ
-    uint16_t timeout = 0xFFFF;
-    while (!k_sem_take(&drv_data->isr_sem))
+    if (k_sem_take(&drv_data->isr_sem, K_MSEC(10)) != 0)
     {
-        if (timeout-- == 0)
-            return -3;
+        return -3;
     }
 
     // Read event to get pib len
