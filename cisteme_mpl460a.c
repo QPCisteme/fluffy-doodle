@@ -416,7 +416,7 @@ static int get_pib(const struct device *dev, uint32_t register_id,
 
     // Send register_id, len and dummy
     uint16_t tx_data[4] = {(uint16_t)(register_id >> 16),
-                           (uint16_t)(register_id & 0x0fff), size >> 1, 0x0000};
+                           (uint16_t)(register_id & 0x0fff), size, 0x0000};
 
     gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
 
@@ -438,8 +438,7 @@ static int get_pib(const struct device *dev, uint32_t register_id,
         return ret;
 
     // Read PIB value
-    ret = fw_id_send(dev, PL460_G3_REG_INFO, 0, 0, value,
-                     event_info == 1 ? 0x01 : event_info >> 1, false);
+    ret = fw_id_send(dev, PL460_G3_REG_INFO, 0, 0, value, event_info, false);
     if (ret < 0)
         return ret;
 
