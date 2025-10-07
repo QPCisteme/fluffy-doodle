@@ -51,8 +51,6 @@ typedef int (*mpl460a_txconf_cmd_t)(const struct device *dev, uint32_t *RMS,
 typedef int (*mpl460a_pib_val_cmd_t)(const struct device *dev, uint16_t *value,
                                      uint16_t len);
 
-typedef int (*mpl460a_pib2_val_cmd_t)(const struct device *dev, uint32_t addr,
-                                      uint16_t *value, uint16_t len);
 // API declaration
 __subsystem struct mpl460a_api
 {
@@ -74,9 +72,12 @@ __subsystem struct mpl460a_api
     mpl460a_cmd_t mpl460a_tx_enable;
 
     mpl460a_pib_cmd_t mpl460a_pib_read;
+    mpl460a_pib_cmd_t mpl460a_pib_write;
+
     mpl460a_txconf_cmd_t mpl460a_tx_confirm;
+
     mpl460a_pib_val_cmd_t mpl460a_get_pib_value;
-    mpl460a_pib2_val_cmd_t mpl460a_set_pib_value;
+    mpl460a_pib_val_cmd_t mpl460a_set_pib_value;
 };
 
 __syscall int mpl460a_boot_write(const struct device *dev, uint32_t addr,
@@ -231,6 +232,20 @@ static inline int z_impl_mpl460a_pib_read(const struct device *dev,
     return api->mpl460a_pib_read(dev, register_id, len);
 }
 
+__syscall int mpl460a_pib_write(const struct device *dev, uint32_t register_id,
+                                uint16_t len);
+
+static inline int z_impl_mpl460a_pib_write(const struct device *dev,
+                                           uint32_t register_id, uint16_t len)
+{
+    const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
+    if (api->mpl460a_pib_write == NULL)
+    {
+        return -ENOSYS;
+    }
+    return api->mpl460a_pib_write(dev, register_id, len);
+}
+
 __syscall int mpl460a_tx_confirm(const struct device *dev, uint32_t *RMS,
                                  uint32_t *t_time, uint16_t *result);
 
@@ -260,19 +275,18 @@ static inline int z_impl_mpl460a_get_pib_value(const struct device *dev,
     return api->mpl460a_get_pib_value(dev, value, len);
 }
 
-__syscall int mpl460a_set_pib_value(const struct device *dev, uint32_t addr,
-                                    uint16_t *value, uint16_t len);
+__syscall int mpl460a_set_pib_value(const struct device *dev, uint16_t *value,
+                                    uint16_t len);
 
 static inline int z_impl_mpl460a_set_pib_value(const struct device *dev,
-                                               uint32_t addr, uint16_t *value,
-                                               uint16_t len)
+                                               uint16_t *value, uint16_t len)
 {
     const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
     if (api->mpl460a_set_pib_value == NULL)
     {
         return -ENOSYS;
     }
-    return api->mpl460a_set_pib_value(dev, addr, value, len);
+    return api->mpl460a_set_pib_value(dev, value, len);
 }
 
 // Include syscall
