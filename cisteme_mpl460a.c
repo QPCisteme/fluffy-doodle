@@ -291,15 +291,17 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
 static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
                          uint32_t *event_info)
 {
-    uint8_t rx_data[8];
-    uint16_t events =
-        fw_id_send(dev, PL460_G3_STATUS, 0, 0, (uint16_t *)rx_data, 8, false);
+    uint16_t rx_data[4];
+    uint16_t events = fw_id_send(dev, PL460_G3_STATUS, 0, 0, rx_data, 8, false);
 
     if (events < 0)
         return events;
 
-    *timer_ref = (rx_data[1] << 16) | (rx_data[0]);
-    *event_info = (rx_data[2] << 16) | (rx_data[3]);
+    *timer_ref = (sys_get_be16((uint8_t *)rx_data[1]) << 16) |
+                 (sys_get_be16((uint8_t *)rx_data[0]));
+
+    *event_info = (sys_get_be16((uint8_t *)rx_data[3]) << 16) |
+                  (sys_get_be16((uint8_t *)rx_data[2]));
 
     return events;
 }
