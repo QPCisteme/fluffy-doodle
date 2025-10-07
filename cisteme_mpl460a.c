@@ -444,7 +444,7 @@ static int pib_write(const struct device *dev, uint32_t addr, uint16_t len)
         return -2;
 
     printk("TX : ");
-    for (int i = 0; i < 12; i++)
+    for (int i = 0; i < 10; i++)
         printk("%.2x ", tx_data[i]);
     printk("\r\n");
 
