@@ -424,11 +424,6 @@ static int get_pib(const struct device *dev, uint32_t register_id,
 
     gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
 
-    // Check FW header
-    uint16_t header = sys_get_be16(&rx_data[0]);
-    if (header != PL460_FW_HEADER)
-        return -2;
-
     if (k_sem_take(&drv_data->isr_sem, K_MSEC(10)) != 0)
     {
         return -3;
