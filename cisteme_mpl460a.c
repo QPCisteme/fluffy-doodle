@@ -240,7 +240,7 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
     // Copy ID (BE)
     sys_put_be16(id, tx_header);
     // Copy length (BE)
-    sys_put_be16(MAX(tx_size, rx_size), tx_header + 2);
+    sys_put_be16(MAX(tx_size >> 1, rx_size >> 1), tx_header + 2);
 
     // Update R/W bit
     if (write)
@@ -418,11 +418,11 @@ static int get_pib(const struct device *dev, uint32_t register_id,
     uint16_t tx_data[4] = {(uint16_t)(register_id >> 16),
                            (uint16_t)(register_id & 0x0fff), size >> 1, 0x0000};
 
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
+
     ret = fw_id_send(dev, PL460_G3_REG_INFO, tx_data, 8, 0, 0, true);
     if (ret < 0)
         return ret;
-
-    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
 
     if (k_sem_take(&drv_data->isr_sem, K_MSEC(10)) != 0)
     {
