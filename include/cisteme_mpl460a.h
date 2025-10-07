@@ -209,7 +209,7 @@ static inline int z_impl_mpl460a_send(const struct device *dev, uint16_t *data,
 }
 
 __syscall int mpl460a_get_pib(const struct device *dev, uint32_t register_id,
-                              uint16_t *value uint16_t len);
+                              uint16_t *value, uint16_t len);
 
 static inline int z_impl_mpl460a_get_pib(const struct device *dev,
                                          uint32_t register_id, uint16_t *value,
