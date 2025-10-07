@@ -437,6 +437,8 @@ static int get_pib(const struct device *dev, uint32_t register_id,
     if (ret < 0)
         return ret;
 
+    printk("T : %.8x, E : %.2x, Info : %.4x\r\n", timer_ref, ret, event_info);
+
     // Read PIB value
     ret = fw_id_send(dev, PL460_G3_REG_INFO, 0, 0, value, event_info, false);
     if (ret < 0)
