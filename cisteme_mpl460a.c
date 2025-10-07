@@ -237,6 +237,12 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
     uint8_t tx_header[4];
     uint8_t rx_header[4];
 
+    if (tx_size & 0x01)
+        tx_size++;
+
+    if (rx_size & 0x01)
+        rx_size++;
+
     // Copy ID (BE)
     sys_put_be16(id, tx_header);
     // Copy length (BE)
