@@ -261,14 +261,6 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
     if (ret < 0)
         return ret;
 
-    // Check FW header
-    uint16_t header = sys_get_be16(&rx_header[0]);
-    if (header != PL460_FW_HEADER)
-        return -2;
-
-    // Return events (LE)
-    int events = sys_get_be16(&rx_header[2]);
-
     printk("TX : ");
     uint8_t *p = (uint8_t *)tx;
     for (int i = 0; i < tx_size; i++)
@@ -284,6 +276,14 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
         printk("%.02x ", *(p + i));
     }
     printk("\r\n");
+
+    // Check FW header
+    uint16_t header = sys_get_be16(&rx_header[0]);
+    if (header != PL460_FW_HEADER)
+        return -2;
+
+    // Return events (LE)
+    int events = sys_get_be16(&rx_header[2]);
 
     return events;
 }
