@@ -411,7 +411,7 @@ static int set_pib_value(const struct device *dev, uint32_t addr,
     sys_put_be16(0x8003 + (size >> 1), tx_data + 2);
     sys_put_le16((uint16_t)(addr >> 16), tx_data + 4);
     sys_put_le16((uint16_t)(addr & 0x0fff), tx_data + 6);
-    sys_put_le16(0x8000 + len, tx_data + 8);
+    sys_put_le16((1 << 10) | len, tx_data + 8);
     for (int i = 0; i < (size >> 1); i++)
         sys_put_le16(*(value + i), tx_data + 10 + 2 * i);
 
