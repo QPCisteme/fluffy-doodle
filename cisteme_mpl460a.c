@@ -278,7 +278,7 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
     printk("\r\n");
 
     printk("RX : ");
-    uint8_t *p = (uint8_t *)rx;
+    *p = (uint8_t *)rx;
     for (int i = 0; i < rx_size; i++)
     {
         printk("%.02x ", *(p + i));
@@ -440,7 +440,7 @@ static int get_pib(const struct device *dev, uint32_t register_id,
 
     // Read event to get pib len
     uint32_t timer_ref, event_info;
-    int ret = fw_get_events(data->dev, &timer_ref, &event_info);
+    ret = fw_get_events(dev, &timer_ref, &event_info);
     if (ret < 0)
         return ret;
 
