@@ -297,11 +297,11 @@ static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
     if (events < 0)
         return events;
 
-    *timer_ref = (sys_get_be16((uint8_t *)rx_data + 1) << 16) |
+    *timer_ref = (sys_get_be16((uint8_t *)rx_data + 2) << 16) |
                  (sys_get_be16((uint8_t *)rx_data));
 
-    *event_info = (sys_get_be16((uint8_t *)rx_data + 3) << 16) |
-                  (sys_get_be16((uint8_t *)rx_data + 2));
+    *event_info = (sys_get_be16((uint8_t *)rx_data + 6) << 16) |
+                  (sys_get_be16((uint8_t *)rx_data + 4));
 
     return events;
 }
