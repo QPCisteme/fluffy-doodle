@@ -330,7 +330,7 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
     int ret;
 
     // Send TX_PARAMS
-    drv_data->params.dataLength = len;
+    drv_data->params.dataLength = len << 16;
 
     gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
 
