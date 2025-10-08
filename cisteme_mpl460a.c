@@ -330,7 +330,7 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
     int ret;
 
     // Send TX_PARAMS
-    ret = fw_id_send(dev, PL460_G3_TX_PARAM, (uint16_t *)&drv_data->params, 20,
+    ret = fw_id_send(dev, PL460_G3_TX_PARAM, (uint16_t *)&drv_data->params, 40,
                      0, 0, true);
     if (ret < 0)
         return ret;
