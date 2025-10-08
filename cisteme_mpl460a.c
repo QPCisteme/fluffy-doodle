@@ -262,11 +262,6 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
                                     {.buf = (uint8_t *)rx, .len = rx_size}};
     struct spi_buf_set rx_spi_data_set = {.buffers = rx_spi_buf, .count = 2};
 
-    int ret =
-        spi_transceive_dt(&drv_config->spi, &tx_spi_data_set, &rx_spi_data_set);
-    if (ret < 0)
-        return ret;
-
     uint8_t *p;
     p = (uint8_t *)tx;
     printk("TX : \r\n");
@@ -279,6 +274,11 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
     for (int i = 0; i < rx_size; i++)
         printk("%.2x ", p[i]);
     printk("\r\n");
+
+    int ret =
+        spi_transceive_dt(&drv_config->spi, &tx_spi_data_set, &rx_spi_data_set);
+    if (ret < 0)
+        return ret;
 
     // Check FW header
     uint16_t header = sys_get_be16(&rx_header[0]);
