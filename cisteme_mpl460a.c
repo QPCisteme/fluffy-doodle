@@ -2,12 +2,12 @@
 #define DT_DRV_COMPAT cisteme_mpl460a
 
 // Include libs
-#include <logging/log.h>
 #include <stdio.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/spi.h>
 #include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 #include <zephyr/sys/byteorder.h>
 // Include custom libs
 #include <cisteme_mpl460a.h>
