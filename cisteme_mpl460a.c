@@ -94,7 +94,6 @@ static int boot_wait_wip(const struct device *dev)
         // Timeout conditions
         if (timeout-- == 0)
         {
-            LOG_WRN("FW Write Timeout\r\n");
             return -116;
         }
     } while (rx_data[0] != 0);
@@ -120,8 +119,10 @@ static int boot_write_fw(const struct device *dev, const uint8_t *data,
 
         ret = boot_wait_wip(dev);
         if (ret < 0)
+        {
+            LOG_WRN("FW Write Timeout");
             return ret;
-
+        }
         write_addr += pkt_size;
         max_addr -= pkt_size;
     }
