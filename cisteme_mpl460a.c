@@ -120,7 +120,6 @@ static int boot_write_fw(const struct device *dev, const uint8_t *data,
         ret = boot_wait_wip(dev);
         if (ret < 0)
         {
-            LOG_WRN("FW Write Timeout");
             return ret;
         }
         write_addr += pkt_size;
