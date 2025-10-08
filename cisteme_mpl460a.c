@@ -381,7 +381,7 @@ static int set_pib(const struct device *dev, uint32_t register_id,
     tx_data[0] = (uint16_t)(register_id >> 16);
     tx_data[1] = (uint16_t)(register_id & 0x0fff);
     tx_data[2] = (1 << 10) | len;
-    memcpy(tx_data + 3, value, size >> 1);
+    memcpy(&tx_data[3], value, size);
 
     ret = fw_id_send(dev, PL460_G3_REG_INFO, tx_data, 6 + size, 0, 0, true);
     if (ret < 0)
