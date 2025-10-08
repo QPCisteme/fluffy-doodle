@@ -264,13 +264,13 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
 
     uint8_t *p;
     p = (uint8_t *)tx;
-    printk("TX : \r\n");
+    printk("TX : ");
     for (int i = 0; i < tx_size; i++)
         printk("%.2x ", p[i]);
     printk("\r\n");
 
     p = (uint8_t *)rx;
-    printk("RX : \r\n");
+    printk("RX : ");
     for (int i = 0; i < rx_size; i++)
         printk("%.2x ", p[i]);
     printk("\r\n");
@@ -500,9 +500,14 @@ static int mpl460a_init(const struct device *dev)
     drv_data->params.timeIni = 0;
     drv_data->params.dataLength = 0; // payload + FCS
     memset(drv_data->params.preemphasis, 0, 24);
-    drv_data->params.toneMap[0] = 0x3F;
-    memset(drv_data->params.toneMap + 1, 0, 2);
-    drv_data->params.mode = 3;
+    drv_data->params.toneMap[0] = 0x00;
+    drv_data->params.toneMap[1] = 0x3F;
+    drv_data->params.toneMap[2] = 0x3;
+    drv_data->params.mode = 0;
+
+    // drv_data->params.toneMap[0] = 0x3F;
+    // memset(drv_data->params.toneMap + 1, 0, 2);
+    // drv_data->params.mode = 3;
     drv_data->params.attenuation = 0;
     drv_data->params.modType = 0;
     drv_data->params.modScheme = 0;
