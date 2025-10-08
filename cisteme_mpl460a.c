@@ -357,7 +357,7 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
 
     // Check TX_CONFIRM
     uint16_t rx_cfm[5];
-    ret = fw_id_send(dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 5, false);
+    ret = fw_id_send(dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 10, false);
     if (ret < 0)
         return ret;
 
