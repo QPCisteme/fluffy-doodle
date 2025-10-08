@@ -2,15 +2,17 @@
 #define DT_DRV_COMPAT cisteme_mpl460a
 
 // Include libs
+#include <logging/log.h>
 #include <stdio.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/spi.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/byteorder.h>
-
 // Include custom libs
 #include <cisteme_mpl460a.h>
+
+LOG_MODULE_REGISTER(mpl460a_log, LOG_LEVEL_DBG);
 
 // Define C function
 static int boot_write(const struct device *dev, uint32_t addr, uint16_t cmd,
@@ -92,7 +94,7 @@ static int boot_wait_wip(const struct device *dev)
         // Timeout conditions
         if (timeout-- == 0)
         {
-            printk("FW Write Timeout\r\n");
+            LOG_WRN("FW Write Timeout\r\n");
             return -116;
         }
     } while (rx_data[0] != 0);
@@ -267,21 +269,8 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
     if (ret < 0)
         return ret;
 
-    printk("TX : ");
-    uint8_t *p = (uint8_t *)tx;
-    for (int i = 0; i < tx_size; i++)
-    {
-        printk("%.02x ", *(p + i));
-    }
-    printk("\r\n");
-
-    printk("RX : ");
-    p = (uint8_t *)rx;
-    for (int i = 0; i < rx_size; i++)
-    {
-        printk("%.02x ", *(p + i));
-    }
-    printk("\r\n");
+    LOG_HEXDUMP_INF((uint8_t *)tx, tx_size, "TX");
+    LOG_HEXDUMP_INF((uint8_t *)rx, rx_size, "RX");
 
     // Check FW header
     uint16_t header = sys_get_be16(&rx_header[0]);
