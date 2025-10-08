@@ -12,8 +12,6 @@
 // Include custom libs
 #include <cisteme_mpl460a.h>
 
-LOG_MODULE_REGISTER(mpl460a_log, LOG_LEVEL_DBG);
-
 // Define C function
 static int boot_write(const struct device *dev, uint32_t addr, uint16_t cmd,
                       uint8_t *data, uint8_t size)
@@ -269,8 +267,18 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
     if (ret < 0)
         return ret;
 
-    LOG_HEXDUMP_INF((uint8_t *)tx, tx_size, "TX");
-    LOG_HEXDUMP_INF((uint8_t *)rx, rx_size, "RX");
+    uint8_t *p;
+    p = (uint8_t *)tx;
+    printk("TX : \r\n");
+    for (int i = 0; i < tx_size; i++)
+        printk("%.2x ");
+    printk("\r\n");
+
+    p = (uint8_t *)rx;
+    printk("RX : \r\n");
+    for (int i = 0; i < rx_size; i++)
+        printk("%.2x ");
+    printk("\r\n");
 
     // Check FW header
     uint16_t header = sys_get_be16(&rx_header[0]);
