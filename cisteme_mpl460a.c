@@ -262,6 +262,11 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
                                     {.buf = (uint8_t *)rx, .len = rx_size}};
     struct spi_buf_set rx_spi_data_set = {.buffers = rx_spi_buf, .count = 2};
 
+    int ret =
+        spi_transceive_dt(&drv_config->spi, &tx_spi_data_set, &rx_spi_data_set);
+    if (ret < 0)
+        return ret;
+
     uint8_t *p;
     p = (uint8_t *)tx;
     printk("TX : ");
@@ -274,11 +279,6 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
     for (int i = 0; i < rx_size; i++)
         printk("%.2x ", p[i]);
     printk("\r\n");
-
-    int ret =
-        spi_transceive_dt(&drv_config->spi, &tx_spi_data_set, &rx_spi_data_set);
-    if (ret < 0)
-        return ret;
 
     // Check FW header
     uint16_t header = sys_get_be16(&rx_header[0]);
@@ -331,12 +331,21 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
 
     // Send TX_PARAMS
     drv_data->params.dataLength = len;
+
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
+
     ret = fw_id_send(dev, PL460_G3_TX_PARAM, (uint16_t *)&drv_data->params, 40,
                      0, 0, true);
     if (ret < 0)
         return ret;
 
-    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
+    if (k_sem_take(&drv_data->isr_sem, K_MSEC(10)) != 0)
+    {
+        uint32_t timer_ref, event_info;
+        ret = fw_get_events(dev, &timer_ref, &event_info);
+        printk("E_INFO : %.8x\r\n", event_info);
+        return ret;
+    }
 
     // Send TX_DATA
     ret = fw_id_send(dev, PL460_G3_TX_DATA, data, len, 0, 0, true);
