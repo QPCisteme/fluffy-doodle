@@ -271,13 +271,13 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
     p = (uint8_t *)tx;
     printk("TX : \r\n");
     for (int i = 0; i < tx_size; i++)
-        printk("%.2x ");
+        printk("%.2x ", p[i]);
     printk("\r\n");
 
     p = (uint8_t *)rx;
     printk("RX : \r\n");
     for (int i = 0; i < rx_size; i++)
-        printk("%.2x ");
+        printk("%.2x ", p[i]);
     printk("\r\n");
 
     // Check FW header
