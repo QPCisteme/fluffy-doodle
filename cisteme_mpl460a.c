@@ -343,7 +343,7 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
     if (ret < 0)
         return ret;
 
-    if (k_sem_take(&drv_data->isr_sem, K_MSEC(10)) != 0)
+    if (k_sem_take(&drv_data->isr_sem, K_MSEC(100)) != 0)
     {
         return -3;
     }
