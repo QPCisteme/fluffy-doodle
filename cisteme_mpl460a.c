@@ -518,7 +518,7 @@ static int mpl460a_init(const struct device *dev)
     drv_data->params.dataLength = 0; // payload + FCS
     memset(drv_data->params.preemphasis, 0, 24);
     drv_data->params.toneMap[0] = 0x00;
-    drv_data->params.toneMap[1] = 0x3F;
+    drv_data->params.toneMap[1] = 0x0F;
     drv_data->params.toneMap[2] = 0x3;
     drv_data->params.mode = 0;
 
