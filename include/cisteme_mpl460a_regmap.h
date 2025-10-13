@@ -49,7 +49,7 @@
 #define PL460_REG_DATA_FLAG 0x0008
 #define PL460_RX_PARAM_FLAG 0x0010
 
-/* TX_PARAM Structure ========================================================*/
+/* TX_PARAMETERS =============================================================*/
 
 typedef struct __attribute__((packed))
 {
@@ -117,3 +117,17 @@ typedef enum
     DT_ACK = 2,
     DT_NACK = 3,
 } PL460_DEL_TYPE;
+
+/* GET_EVENT structure =======================================================*/
+typedef struct __attribute__((packed))
+{
+    uint16_t flag;
+    uint32_t tref;
+    uint32_t info;
+} PL460_EVENT_DATA;
+
+/* ERROR CODES ===============================================================*/
+
+#define PL460_BAD_HEADER 0xFFFE
+#define PL460_TIMEOUT 0xFFFD
+#define PL460_UNEXPECTED_EVENT 0xFFFB

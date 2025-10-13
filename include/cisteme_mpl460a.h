@@ -25,6 +25,7 @@ struct mpl460a_data
     uint8_t en_state;
 
     CENA_TX_PARAM params;
+    PL460_EVENT_DATA irq_events;
 
     struct gpio_callback extin_cb_data;
 
