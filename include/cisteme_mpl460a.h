@@ -318,7 +318,7 @@ static inline int z_impl_mpl460a_set_time_ini(const struct device *dev,
                                               uint32_t timeIni)
 {
     const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
-    if (api->mpl460a_set_timeIni == NULL)
+    if (api->mpl460a_set_time_ini == NULL)
     {
         return -ENOSYS;
     }
@@ -352,11 +352,11 @@ static inline int z_impl_mpl460a_set_band(const struct device *dev,
 }
 
 __syscall int mpl460a_fast_init(const struct device *dev, const uint8_t *data,
-                                const uint32_t size)
+                                const uint32_t size);
 
-    static inline int z_impl_mpl460a_fast_init(const struct device *dev,
-                                               const uint8_t *data,
-                                               const uint32_t size)
+static inline int z_impl_mpl460a_fast_init(const struct device *dev,
+                                           const uint8_t *data,
+                                           const uint32_t size)
 {
     const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
     if (api->mpl460a_fast_init == NULL)
@@ -365,5 +365,6 @@ __syscall int mpl460a_fast_init(const struct device *dev, const uint8_t *data,
     }
     return api->mpl460a_fast_init(dev, data, size);
 }
+
 // Include syscall
 #include <syscalls/cisteme_mpl460a.h>

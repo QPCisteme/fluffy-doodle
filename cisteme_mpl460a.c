@@ -543,14 +543,20 @@ static int fast_init(const struct device *dev, const uint8_t *data,
     k_msleep(100);
 
     ret = mpl460a_boot_write_fw(dev, data, size);
+    if (ret < 0)
+        return -1;
 
     k_msleep(100);
 
     ret = mpl460a_boot_check_fw(dev, data, size);
+    if (ret < 0)
+        return ret;
 
     k_msleep(100);
 
     ret = mpl460a_boot_disable(dev);
+    if (ret < 0)
+        return -2;
 
     return 0;
 }
