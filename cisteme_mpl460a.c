@@ -367,8 +367,7 @@ static void wq_rx_params(const struct device *dev)
 
     drv_data->rx_data = malloc(50 * sizeof(uint16_t));
 
-    int ret =
-        fw_id_send(dev, PL460_G3_RX_PARAM, 0, 0, drv_data->rx_data, 100, false);
+    fw_id_send(dev, PL460_G3_RX_PARAM, 0, 0, drv_data->rx_data, 100, false);
 
     printk("RSSI : %d", drv_data->rx_data[4]);
 
@@ -450,6 +449,8 @@ static int fw_receive(const struct device *dev, mpl460a_rx_cb_t callback)
         return -1;
 
     drv_data->rx_cb = callback;
+
+    return;
 }
 
 static int set_pib(const struct device *dev, uint32_t register_id,
@@ -477,7 +478,6 @@ static int set_pib(const struct device *dev, uint32_t register_id,
 static int get_pib(const struct device *dev, uint32_t register_id,
                    uint16_t *value, uint16_t len)
 {
-    const struct mpl460a_config *drv_config = dev->config;
     struct mpl460a_data *drv_data = dev->data;
 
     int ret;
