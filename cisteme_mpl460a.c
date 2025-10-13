@@ -309,6 +309,7 @@ void extin_IRQ(const struct device *dev, struct gpio_callback *cb,
     struct mpl460a_data *data =
         CONTAINER_OF(cb, struct mpl460a_data, extin_cb_data);
 
+    printk("IRQ1\r\n");
     uint32_t timer_ref, event_info;
     int event = fw_get_events(dev, &timer_ref, &event_info);
 
@@ -316,6 +317,7 @@ void extin_IRQ(const struct device *dev, struct gpio_callback *cb,
     data->irq_events.tref = timer_ref;
     data->irq_events.info = event_info;
 
+    printk("IRQ2\r\n");
     k_sem_give(&data->isr_sem);
 }
 
