@@ -450,7 +450,7 @@ static int fw_receive(const struct device *dev, mpl460a_rx_cb_t callback)
 
     drv_data->rx_cb = callback;
 
-    return;
+    return 0;
 }
 
 static int set_pib(const struct device *dev, uint32_t register_id,
