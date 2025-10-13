@@ -99,8 +99,7 @@ static int boot_wait_wip(const struct device *dev)
     return 0;
 }
 
-static int boot_write_fw(const struct device *dev, const uint8_t *data,
-                         const uint32_t size)
+static int boot_write_fw(const struct device *dev, uint8_t *data, uint32_t size)
 {
     int ret;
     uint32_t write_addr = 0, max_addr = size;
@@ -127,8 +126,7 @@ static int boot_write_fw(const struct device *dev, const uint8_t *data,
     return 0;
 }
 
-static int boot_check_fw(const struct device *dev, const uint8_t *data,
-                         const uint32_t size)
+static int boot_check_fw(const struct device *dev, uint8_t *data, uint32_t size)
 {
     int ret, err = 0;
     uint32_t read_addr = 0, max_addr = size;
@@ -527,8 +525,7 @@ static int set_band(const struct device *dev, PL460_BAND band)
     return 0;
 }
 
-static int fast_init(const struct device *dev, const uint8_t *data,
-                     const uint32_t size)
+static int fast_init(const struct device *dev, uint8_t *data, uint32_t size)
 {
     int ret;
     ret = set_en(dev, 1);
