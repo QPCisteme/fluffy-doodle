@@ -356,7 +356,7 @@ static void wq_tx_cfm(struct k_work *work)
     int ret =
         fw_id_send(data->dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 10, false);
     if (ret < 0)
-        return ret;
+        return;
 
     t_time = (sys_get_be16((uint8_t *)rx_cfm + 2) << 16) |
              (sys_get_be16((uint8_t *)rx_cfm));
@@ -364,7 +364,7 @@ static void wq_tx_cfm(struct k_work *work)
     rms = (sys_get_be16((uint8_t *)rx_cfm + 6) << 16) |
           (sys_get_be16((uint8_t *)rx_cfm + 4));
 
-    result = (uint8_t)(rx_cfm >> 8);
+    result = (uint8_t)(rx_cfm[4] >> 8);
 
     data->tx_cb(data->dev, t_time, rms, result);
 
@@ -379,13 +379,12 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len,
         return -1;
 
     struct mpl460a_data *drv_data = dev->data;
-    const struct mpl460a_config *drv_config = dev->config;
 
     int ret;
 
     // Send TX_PARAMS
     drv_data->params.dataLength = len;
-    drv_params->tx_cb = callback;
+    drv_data->tx_cb = callback;
 
     uint16_t tx_params[20];
     uint8_t *pSrc = (uint8_t *)&drv_data->params;
