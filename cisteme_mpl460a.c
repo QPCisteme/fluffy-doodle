@@ -326,21 +326,21 @@ static void wq_get_event(struct k_work *work)
     data->irq_events.tref = timer_ref;
     data->irq_events.info = event_info;
 
-    if (event & PL460_TX_CFM_FLAG)
+    if (ret & PL460_TX_CFM_FLAG)
     {
         k_work_submit(&data->tx_cfm_work);
     }
 
-    if (event & PL460_RX_DATA_FLAG)
+    if (ret & PL460_RX_DATA_FLAG)
     {
     }
 
-    if (event & PL460_REG_DATA_FLAG)
+    if (ret & PL460_REG_DATA_FLAG)
     {
         k_sem_give(&data->isr_sem);
     }
 
-    if (event & PL460_RX_PARAM_FLAG)
+    if (ret & PL460_RX_PARAM_FLAG)
     {
     }
 }
@@ -366,7 +366,8 @@ static void wq_tx_cfm(struct k_work *work)
 
     result = (uint8_t)(rx_cfm[4] >> 8);
 
-    data->tx_cb(data->dev, t_time, rms, result);
+    if (data->tx_cb != NULL)
+        data->tx_cb(data->dev, t_time, rms, result);
 
     return;
 }
@@ -672,6 +673,10 @@ static int mpl460a_init(const struct device *dev)
     drv_data->params.delimiterType = 0;
 
     drv_data->dev = dev;
+
+    drv_data->tx_cb = NULL;
+    drv_data->rx_cb = NULL;
+
     k_sem_init(&drv_data->isr_sem, 0, 1);
     k_work_init(&drv_data->get_event_work, wq_get_event);
     k_work_init(&drv_data->tx_cfm_work, wq_tx_cfm);
