@@ -92,7 +92,7 @@ static int boot_wait_wip(const struct device *dev)
         // Timeout conditions
         if (timeout-- == 0)
         {
-            return PL460_TIMEOUT;
+            return -116;
         }
     } while (rx_data[0] != 0);
 
@@ -261,10 +261,23 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
     if (ret < 0)
         return ret;
 
+    uint8_t *p;
+    p = (uint8_t *)tx;
+    printk("TX : ");
+    for (int i = 0; i < tx_size; i++)
+        printk("%.2x ", p[i]);
+    printk("\r\n");
+
+    p = (uint8_t *)rx;
+    printk("RX : ");
+    for (int i = 0; i < rx_size; i++)
+        printk("%.2x ", p[i]);
+    printk("\r\n");
+
     // Check FW header
     uint16_t header = sys_get_be16(&rx_header[0]);
     if (header != PL460_FW_HEADER)
-        return PL460_BAD_HEADER;
+        return -2;
 
     // Return events (LE)
     int events = sys_get_be16(&rx_header[2]);
@@ -296,14 +309,6 @@ void extin_IRQ(const struct device *dev, struct gpio_callback *cb,
     struct mpl460a_data *data =
         CONTAINER_OF(cb, struct mpl460a_data, extin_cb_data);
 
-    uint32_t timer_ref, event_info;
-    int event = fw_get_events(dev, &timer_ref, &event_info);
-
-    data->irq_events.flag = event;
-    data->irq_events.tref = timer_ref;
-    data->irq_events.info = event_info;
-
-    printk("IRQ2\r\n");
     k_sem_give(&data->isr_sem);
 }
 
@@ -334,7 +339,9 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
 
     if (k_sem_take(&drv_data->isr_sem, K_MSEC(10)) == 0)
     {
-        if (drv_data->irq_events.flag == PL460_TX_CFM_FLAG)
+        uint32_t timer_ref, event_info;
+        ret = fw_get_events(dev, &timer_ref, &event_info);
+        if (ret & 0x0001)
         {
             // Check TX_CONFIRM
             uint16_t rx_cfm[5];
@@ -344,8 +351,7 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
 
             return rx_cfm[4];
         }
-        else
-            return PL460_UNEXPECTED_EVENT;
+        return ret;
     }
 
     // Send TX_DATA
@@ -355,13 +361,16 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
 
     if (k_sem_take(&drv_data->isr_sem, K_MSEC(100)) != 0)
     {
-        return PL460_TIMEOUT;
+        return -3;
     }
 
     gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLE);
 
-    if (drv_data->irq_events.flag != PL460_TX_CFM_FLAG)
-        return PL460_UNEXPECTED_EVENT;
+    // Read event
+    uint32_t timer_ref, event_info;
+    ret = fw_get_events(dev, &timer_ref, &event_info);
+    if (!(ret & 0x0001))
+        return ret;
 
     uint16_t rx_cfm[5];
     ret = fw_id_send(dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 10, false);
@@ -413,17 +422,20 @@ static int get_pib(const struct device *dev, uint32_t register_id,
 
     if (k_sem_take(&drv_data->isr_sem, K_MSEC(10)) != 0)
     {
-        return PL460_TIMEOUT;
+        return -3;
     }
 
     gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLE);
 
-    if (drv_data->irq_events.flag != PL460_REG_DATA_FLAG)
-        return PL460_UNEXPECTED_EVENT;
+    // Read event to get pib len
+    uint32_t timer_ref, event_info;
+    ret = fw_get_events(dev, &timer_ref, &event_info);
+    if (ret < 0)
+        return ret;
 
     // Read PIB value
-    ret = fw_id_send(dev, PL460_G3_REG_INFO, 0, 0, value,
-                     drv_data->irq_events.info >> 16, false);
+    ret = fw_id_send(dev, PL460_G3_REG_INFO, 0, 0, value, event_info >> 16,
+                     false);
     if (ret < 0)
         return ret;
 
