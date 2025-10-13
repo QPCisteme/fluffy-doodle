@@ -435,8 +435,6 @@ static int get_pib(const struct device *dev, uint32_t register_id,
     uint16_t tx_data[4] = {(uint16_t)(register_id >> 16),
                            (uint16_t)(register_id & 0x0fff), len, 0x0000};
 
-    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
-
     ret = fw_id_send(dev, PL460_G3_REG_INFO, tx_data, 8, 0, 0, true);
     if (ret < 0)
         return ret;
@@ -445,8 +443,6 @@ static int get_pib(const struct device *dev, uint32_t register_id,
     {
         return PL460_TIMEOUT;
     }
-
-    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLE);
 
     if (!(drv_data->irq_events.flag & PL460_REG_DATA_FLAG))
         return PL460_UNEXPECTED_EVENT;
@@ -680,7 +676,7 @@ static int mpl460a_init(const struct device *dev)
     k_work_init(&drv_data->get_event_work, wq_get_event);
     k_work_init(&drv_data->tx_cfm_work, wq_tx_cfm);
 
-    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLE);
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
     gpio_init_callback(&drv_data->extin_cb_data, extin_IRQ,
                        BIT(drv_config->extin.pin));
     gpio_add_callback(drv_config->extin.port, &drv_data->extin_cb_data);
