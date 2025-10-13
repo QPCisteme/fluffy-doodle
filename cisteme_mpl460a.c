@@ -319,15 +319,60 @@ static void wq_get_event(struct k_work *work)
 
     uint32_t timer_ref, event_info;
     uint16_t event = fw_get_events(data->dev, &timer_ref, &event_info);
+    if (event < 0)
+        return;
 
     data->irq_events.flag = event;
     data->irq_events.tref = timer_ref;
     data->irq_events.info = event_info;
 
-    k_sem_give(&data->isr_sem);
+    if (event & PL460_TX_CFM_FLAG)
+    {
+        k_work_submit(&data->tx_cfm_work);
+    }
+
+    if (event & PL460_RX_DATA_FLAG)
+    {
+    }
+
+    if (event & PL460_REG_DATA_FLAG)
+    {
+        k_sem_give(&data->isr_sem);
+    }
+
+    if (event & PL460_RX_PARAM_FLAG)
+    {
+    }
 }
 
-static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
+static void wq_tx_cfm(struct k_work *work)
+{
+    struct mpl460a_data *data =
+        CONTAINER_OF(work, struct mpl460a_data, tx_cfm_work);
+
+    uint16_t rx_cfm[5];
+    uint32_t t_time, rms;
+    uint8_t result;
+    int ret =
+        fw_id_send(data->dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 10, false);
+    if (ret < 0)
+        return ret;
+
+    t_time = (sys_get_be16((uint8_t *)rx_cfm + 2) << 16) |
+             (sys_get_be16((uint8_t *)rx_cfm));
+
+    rms = (sys_get_be16((uint8_t *)rx_cfm + 6) << 16) |
+          (sys_get_be16((uint8_t *)rx_cfm + 4));
+
+    result = (uint8_t)(rx_cfm >> 8);
+
+    data->tx_cb(data->dev, t_time, rms, result);
+
+    return;
+}
+
+static int fw_send(const struct device *dev, uint16_t *data, uint8_t len,
+                   mpl460a_tx_cb_t callback)
 {
     // Limit packet length
     if (len > 64)
@@ -340,54 +385,21 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
 
     // Send TX_PARAMS
     drv_data->params.dataLength = len;
+    drv_params->tx_cb = callback;
 
     uint16_t tx_params[20];
     uint8_t *pSrc = (uint8_t *)&drv_data->params;
     for (int i = 0; i < 20; i++)
         tx_params[i] = sys_get_be16(pSrc + (i << 1));
 
-    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
-
     ret = fw_id_send(dev, PL460_G3_TX_PARAM, tx_params, 40, 0, 0, true);
     if (ret < 0)
         return ret;
-
-    if (k_sem_take(&drv_data->isr_sem, K_MSEC(10)) == 0)
-    {
-        if (drv_data->irq_events.flag & PL460_TX_CFM_FLAG)
-        {
-            // Check TX_CONFIRM
-            uint16_t rx_cfm[5];
-            ret = fw_id_send(dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 10, false);
-            if (ret < 0)
-                return ret;
-
-            return rx_cfm[4];
-        }
-        return PL460_UNEXPECTED_EVENT;
-    }
 
     // Send TX_DATA
     ret = fw_id_send(dev, PL460_G3_TX_DATA, data, len, 0, 0, true);
     if (ret < 0)
         return ret;
-
-    if (k_sem_take(&drv_data->isr_sem, K_MSEC(100)) != 0)
-    {
-        return PL460_TIMEOUT;
-    }
-
-    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLE);
-
-    if (!(drv_data->irq_events.flag & 0x0001))
-        return ret;
-
-    uint16_t rx_cfm[5];
-    ret = fw_id_send(dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 10, false);
-    if (ret < 0)
-        return ret;
-
-    return rx_cfm[4];
 }
 
 static int set_pib(const struct device *dev, uint32_t register_id,
@@ -667,6 +679,7 @@ static int mpl460a_init(const struct device *dev)
     drv_data->dev = dev;
     k_sem_init(&drv_data->isr_sem, 0, 1);
     k_work_init(&drv_data->get_event_work, wq_get_event);
+    k_work_init(&drv_data->tx_cfm_work, wq_tx_cfm);
 
     gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLE);
     gpio_init_callback(&drv_data->extin_cb_data, extin_IRQ,

@@ -28,9 +28,12 @@ struct mpl460a_data
     PL460_EVENT_DATA irq_events;
 
     struct gpio_callback extin_cb_data;
-    struct k_work get_event_work;
+    struct k_work get_event_work, tx_cfm_work, rx_data_work, rx_params;
 
     struct k_sem isr_sem;
+
+    mpl460a_tx_cb_t tx_cb;
+    mpl460a_tx_cb_t rx_cb;
 };
 
 // Functions typedef
@@ -59,6 +62,16 @@ typedef int (*mpl460a_time_ini_t)(const struct device *dev, uint32_t timeIni);
 typedef int (*mpl460a_attenuation_t)(const struct device *dev, uint8_t atten);
 typedef int (*mpl460a_band_t)(const struct device *dev, PL460_BAND band);
 
+typedef int (*mpl460a_tx_cb_t)(const struct device *dev, uint32_t t_time,
+                               uint32_t RMS, uint8_t result);
+typedef int (*mpl460a_rx_cb_t)(const struct device *dev, uint16_t data,
+                               uint8_t len);
+
+typedef int (*mpl460a_send_t)(const struct device *dev, uint16_t *data,
+                              uint8_t len, mpl460a_tx_cb_t callback);
+typedef int (*mpl460a_receive_t)(const struct device *dev,
+                                 mpl460a_rx_cb_t callback);
+
 // API declaration
 __subsystem struct mpl460a_api
 {
@@ -77,7 +90,7 @@ __subsystem struct mpl460a_api
     mpl460a_cmd_t mpl460a_boot_disable;
 
     mpl460a_fw_event_cmd_t mpl460a_get_events;
-    mpl460a_data_cmd_t mpl460a_send;
+    mpl460a_send_t mpl460a_send;
 
     mpl460a_pib_cmd_t mpl460a_get_pib;
     mpl460a_pib_cmd_t mpl460a_set_pib;
@@ -214,17 +227,17 @@ static inline int z_impl_mpl460a_boot_disable(const struct device *dev)
 }
 
 __syscall int mpl460a_send(const struct device *dev, uint16_t *data,
-                           uint8_t len);
+                           uint8_t len, mpl460a_tx_cb_t callback);
 
 static inline int z_impl_mpl460a_send(const struct device *dev, uint16_t *data,
-                                      uint8_t len)
+                                      uint8_t len, mpl460a_tx_cb_t callback)
 {
     const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
     if (api->mpl460a_send == NULL)
     {
         return -ENOSYS;
     }
-    return api->mpl460a_send(dev, data, len);
+    return api->mpl460a_send(dev, data, len, callback);
 }
 
 __syscall int mpl460a_get_pib(const struct device *dev, uint32_t register_id,
@@ -363,6 +376,20 @@ static inline int z_impl_mpl460a_fast_init(const struct device *dev,
         return -ENOSYS;
     }
     return api->mpl460a_fast_init(dev, data, size);
+}
+
+__syscall int mpl460a_receive(const struct device *dev,
+                              mpl460a_rx_cb_t callback);
+
+static inline int z_impl_mpl460a_receive(const struct device *dev,
+                                         mpl460a_rx_cb_t callback)
+{
+    const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
+    if (api->mpl460a_receive == NULL)
+    {
+        return -ENOSYS;
+    }
+    return api->mpl460a_receive(dev, callback);
 }
 
 // Include syscall
