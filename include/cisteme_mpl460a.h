@@ -16,26 +16,6 @@ struct mpl460a_config
     struct gpio_dt_spec nthw0;
 };
 
-// Data structure (READ-WRITE)
-struct mpl460a_data
-{
-    const struct device *dev;
-
-    uint8_t nrst_state;
-    uint8_t en_state;
-
-    CENA_TX_PARAM params;
-    PL460_EVENT_DATA irq_events;
-
-    struct gpio_callback extin_cb_data;
-    struct k_work get_event_work, tx_cfm_work, rx_data_work, rx_params;
-
-    struct k_sem isr_sem;
-
-    mpl460a_tx_cb_t tx_cb;
-    mpl460a_tx_cb_t rx_cb;
-};
-
 // Functions typedef
 typedef int (*mpl460a_boot_cmd_t)(const struct device *dev, uint32_t addr,
                                   uint16_t cmd, uint8_t *data, uint8_t size);
@@ -72,6 +52,26 @@ typedef int (*mpl460a_send_t)(const struct device *dev, uint16_t *data,
 typedef int (*mpl460a_receive_t)(const struct device *dev,
                                  mpl460a_rx_cb_t callback);
 
+// Data structure (READ-WRITE)
+struct mpl460a_data
+{
+    const struct device *dev;
+
+    uint8_t nrst_state;
+    uint8_t en_state;
+
+    CENA_TX_PARAM params;
+    PL460_EVENT_DATA irq_events;
+
+    struct gpio_callback extin_cb_data;
+    struct k_work get_event_work, tx_cfm_work, rx_data_work, rx_params;
+
+    struct k_sem isr_sem;
+
+    mpl460a_tx_cb_t tx_cb;
+    mpl460a_tx_cb_t rx_cb;
+};
+
 // API declaration
 __subsystem struct mpl460a_api
 {
@@ -102,6 +102,8 @@ __subsystem struct mpl460a_api
     mpl460a_time_ini_t mpl460a_set_time_ini;
     mpl460a_attenuation_t mpl460a_set_attenuation;
     mpl460a_band_t mpl460a_set_band;
+
+    mpl460a_receive_t mpl460a_receive;
 };
 
 __syscall int mpl460a_boot_write(const struct device *dev, uint32_t addr,
