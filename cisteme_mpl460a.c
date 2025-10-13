@@ -318,11 +318,11 @@ static void wq_get_event(struct k_work *work)
         CONTAINER_OF(work, struct mpl460a_data, get_event_work);
 
     uint32_t timer_ref, event_info;
-    uint16_t event = fw_get_events(data->dev, &timer_ref, &event_info);
-    if (event < 0)
+    int ret = fw_get_events(data->dev, &timer_ref, &event_info);
+    if (ret < 0)
         return;
 
-    data->irq_events.flag = event;
+    data->irq_events.flag = (uint16_t)ret;
     data->irq_events.tref = timer_ref;
     data->irq_events.info = event_info;
 
@@ -397,8 +397,8 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len,
 
     // Send TX_DATA
     ret = fw_id_send(dev, PL460_G3_TX_DATA, data, len, 0, 0, true);
-    if (ret < 0)
-        return ret;
+
+    return ret;
 }
 
 static int set_pib(const struct device *dev, uint32_t register_id,
