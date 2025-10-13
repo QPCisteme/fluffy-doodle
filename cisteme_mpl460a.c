@@ -528,6 +528,7 @@ static int set_band(const struct device *dev, PL460_BAND band)
 static int fast_init(const struct device *dev, uint8_t *data, uint32_t size)
 {
     int ret;
+
     ret = set_en(dev, 1);
     if (ret < 0)
         return -3;
@@ -538,9 +539,12 @@ static int fast_init(const struct device *dev, uint8_t *data, uint32_t size)
     if (ret < 0)
         return -4;
 
+    k_msleep(100);
+
     ret = boot_enable(dev);
     if (ret < 0)
         return -4;
+
     k_msleep(100);
 
     ret = boot_write_fw(dev, data, size);
