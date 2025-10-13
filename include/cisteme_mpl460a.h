@@ -44,7 +44,7 @@ typedef int (*mpl460a_band_t)(const struct device *dev, PL460_BAND band);
 
 typedef int (*mpl460a_tx_cb_t)(const struct device *dev, uint32_t t_time,
                                uint32_t RMS, uint8_t result);
-typedef int (*mpl460a_rx_cb_t)(const struct device *dev, uint16_t data,
+typedef int (*mpl460a_rx_cb_t)(const struct device *dev, uint16_t *data,
                                uint8_t len);
 
 typedef int (*mpl460a_send_t)(const struct device *dev, uint16_t *data,

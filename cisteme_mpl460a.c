@@ -3,6 +3,7 @@
 
 // Include libs
 #include <stdio.h>
+#include <stdlib.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/spi.h>
@@ -312,41 +313,6 @@ void extin_IRQ(const struct device *dev, struct gpio_callback *cb,
     k_work_submit(&data->get_event_work);
 }
 
-static void wq_get_event(struct k_work *work)
-{
-    struct mpl460a_data *data =
-        CONTAINER_OF(work, struct mpl460a_data, get_event_work);
-
-    uint32_t timer_ref, event_info;
-    int ret = fw_get_events(data->dev, &timer_ref, &event_info);
-    if (ret < 0)
-        return;
-
-    data->irq_events.flag = (uint16_t)ret;
-    data->irq_events.tref = timer_ref;
-    data->irq_events.info = event_info;
-
-    if (ret & PL460_TX_CFM_FLAG)
-    {
-        wq_tx_cfm(data->dev);
-    }
-
-    if (ret & PL460_RX_DATA_FLAG)
-    {
-        k_work_submit(&data->rx_data_work);
-    }
-
-    if (ret & PL460_REG_DATA_FLAG)
-    {
-        wq_rx_data(data->dev);
-    }
-
-    if (ret & PL460_RX_PARAM_FLAG)
-    {
-        wq_rx_params(data->dev);
-    }
-}
-
 static void wq_tx_cfm(const struct device *dev)
 {
     struct mpl460a_data *drv_data = dev->data;
@@ -409,6 +375,41 @@ static void wq_rx_params(const struct device *dev)
     free(drv_data->rx_data);
 
     return;
+}
+
+static void wq_get_event(struct k_work *work)
+{
+    struct mpl460a_data *data =
+        CONTAINER_OF(work, struct mpl460a_data, get_event_work);
+
+    uint32_t timer_ref, event_info;
+    int ret = fw_get_events(data->dev, &timer_ref, &event_info);
+    if (ret < 0)
+        return;
+
+    data->irq_events.flag = (uint16_t)ret;
+    data->irq_events.tref = timer_ref;
+    data->irq_events.info = event_info;
+
+    if (ret & PL460_TX_CFM_FLAG)
+    {
+        wq_tx_cfm(data->dev);
+    }
+
+    if (ret & PL460_RX_DATA_FLAG)
+    {
+        wq_rx_data(data->dev);
+    }
+
+    if (ret & PL460_REG_DATA_FLAG)
+    {
+        k_sem_give(&data->isr_sem);
+    }
+
+    if (ret & PL460_RX_PARAM_FLAG)
+    {
+        wq_rx_params(data->dev);
+    }
 }
 
 static int fw_send(const struct device *dev, uint16_t *data, uint8_t len,
@@ -657,6 +658,8 @@ static const struct mpl460a_api api = {
     .mpl460a_set_time_ini = &set_time_ini,
     .mpl460a_set_attenuation = &set_attenuation,
     .mpl460a_set_band = &set_band,
+
+    .mpl460a_receive = &fw_receive,
 };
 
 // Init function (called at creation)
