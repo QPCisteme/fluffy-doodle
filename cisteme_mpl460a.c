@@ -309,6 +309,21 @@ void extin_IRQ(const struct device *dev, struct gpio_callback *cb,
     struct mpl460a_data *data =
         CONTAINER_OF(cb, struct mpl460a_data, extin_cb_data);
 
+    k_work_submit(&data->get_event_work);
+}
+
+static void wq_get_event(struct k_work *work)
+{
+    struct mpl460a_data *data =
+        CONTAINER_OF(work, struct mpl460a_data, get_event_work);
+
+    uint32_t timer_ref, event_info;
+    uint16_t event = fw_get_events(dev, &timer_ref, &event_info);
+
+    data->irq_events.flag = event;
+    data->irq_events.tref = timer_ref;
+    data->irq_events.info = event_info;
+
     k_sem_give(&data->isr_sem);
 }
 
@@ -339,9 +354,7 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
 
     if (k_sem_take(&drv_data->isr_sem, K_MSEC(10)) == 0)
     {
-        uint32_t timer_ref, event_info;
-        ret = fw_get_events(dev, &timer_ref, &event_info);
-        if (ret & 0x0001)
+        if (drv_data->irq_events.flag & PL460_TX_CFM_FLAG)
         {
             // Check TX_CONFIRM
             uint16_t rx_cfm[5];
@@ -351,7 +364,7 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
 
             return rx_cfm[4];
         }
-        return ret;
+        return PL460_UNEXPECTED_EVENT;
     }
 
     // Send TX_DATA
@@ -361,15 +374,12 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
 
     if (k_sem_take(&drv_data->isr_sem, K_MSEC(100)) != 0)
     {
-        return -3;
+        return PL460_TIMEOUT;
     }
 
     gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLE);
 
-    // Read event
-    uint32_t timer_ref, event_info;
-    ret = fw_get_events(dev, &timer_ref, &event_info);
-    if (!(ret & 0x0001))
+    if (!(drv_data->irq_events.flag & 0x0001))
         return ret;
 
     uint16_t rx_cfm[5];
@@ -422,16 +432,13 @@ static int get_pib(const struct device *dev, uint32_t register_id,
 
     if (k_sem_take(&drv_data->isr_sem, K_MSEC(10)) != 0)
     {
-        return -3;
+        return PL460_TIMEOUT;
     }
 
     gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLE);
 
-    // Read event to get pib len
-    uint32_t timer_ref, event_info;
-    ret = fw_get_events(dev, &timer_ref, &event_info);
-    if (ret < 0)
-        return ret;
+    if (!(drv_data->irq_events.flag & PL460_REG_DATA_FLAG))
+        return PL460_UNEXPECTED_EVENT;
 
     // Read PIB value
     ret = fw_id_send(dev, PL460_G3_REG_INFO, 0, 0, value, event_info >> 16,
@@ -659,6 +666,7 @@ static int mpl460a_init(const struct device *dev)
 
     drv_data->dev = dev;
     k_sem_init(&drv_data->isr_sem, 0, 1);
+    k_work_init(&drv_data.get_event_work, wq_get_event);
 
     gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLE);
     gpio_init_callback(&drv_data->extin_cb_data, extin_IRQ,

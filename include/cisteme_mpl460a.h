@@ -28,6 +28,7 @@ struct mpl460a_data
     PL460_EVENT_DATA irq_events;
 
     struct gpio_callback extin_cb_data;
+    struct k_work get_event_work;
 
     struct k_sem isr_sem;
 };
