@@ -509,22 +509,22 @@ static int set_band(const struct device *dev, PL460_BAND band)
     switch (band)
     {
     case PL460_BAND_CENA:
-        memcpy(data->params.toneMap, (uint8_t[]){0x3F, 0x00, 0x00},
+        memcpy(drv_data->params.toneMap, (uint8_t[]){0x3F, 0x00, 0x00},
                sizeof(toneMap));
         break;
 
     case PL460_BAND_CENB:
-        memcpy(data->params.toneMap, (uint8_t[]){0x0F, 0x00, 0x00},
+        memcpy(drv_data->params.toneMap, (uint8_t[]){0x0F, 0x00, 0x00},
                sizeof(toneMap));
         break;
 
     case PL460_BAND_ARIB:
-        memcpy(data->params.toneMap, (uint8_t[]){0xFF, 0xFF, 0x03},
+        memcpy(drv_data->params.toneMap, (uint8_t[]){0xFF, 0xFF, 0x03},
                sizeof(toneMap));
         break;
 
     case PL460_BAND_FCC:
-        memcpy(data->params.toneMap, (uint8_t[]){0xFF, 0xFF, 0xFF},
+        memcpy(drv_data->params.toneMap, (uint8_t[]){0xFF, 0xFF, 0xFF},
                sizeof(toneMap));
         break;
 
