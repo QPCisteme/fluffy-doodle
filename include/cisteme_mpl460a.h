@@ -47,6 +47,16 @@ typedef int (*mpl460a_data_cmd_t)(const struct device *dev, uint16_t *data,
 typedef int (*mpl460a_pib_cmd_t)(const struct device *dev, uint32_t register_id,
                                  uint16_t *value, uint16_t len);
 
+typedef int (*mpl460a_mod_type_t)(const struct device *dev, PL460_MOD_TYPE mod);
+typedef int (*mpl460a_tx_mode_t)(const struct device *dev, PL460_TX_MODE mode);
+typedef int (*mpl460a_mod_scheme_t)(const struct device *dev,
+                                    PL460_MOD_SCHEME scheme);
+typedef int (*mpl460a_delimiter_t)(const struct device *dev,
+                                   PL460_DEL_TYPE del);
+typedef int (*mpl460a_time_ini_t)(const struct device *dev, uint32_t timeIni);
+typedef int (*mpl460a_attenuation_t)(const struct device *dev, uint8_t atten);
+typedef int (*mpl460a_band_t)(const struct device *dev, PL460_BAND band);
+
 // API declaration
 __subsystem struct mpl460a_api
 {
@@ -56,6 +66,7 @@ __subsystem struct mpl460a_api
 
     mpl460a_boot_fw_cmd_t mpl460a_boot_write_fw;
     mpl460a_boot_fw_cmd_t mpl460a_boot_check_fw;
+    mpl460a_boot_fw_cmd_t mpl460a_fast_init;
 
     mpl460a_set_cmd_t mpl460a_set_nrst;
     mpl460a_set_cmd_t mpl460a_set_en;
@@ -68,6 +79,14 @@ __subsystem struct mpl460a_api
 
     mpl460a_pib_cmd_t mpl460a_get_pib;
     mpl460a_pib_cmd_t mpl460a_set_pib;
+
+    mpl460a_mod_type_t mpl460a_set_mod_type;
+    mpl460a_tx_mode_t mpl460a_set_tx_mode;
+    mpl460a_mod_scheme_t mpl460a_set_mod_scheme;
+    mpl460a_delimiter_t mpl460a_set_delimiter;
+    mpl460a_time_ini_t mpl460a_set_time_ini;
+    mpl460a_attenuation_t mpl460a_set_attenuation;
+    mpl460a_band_t mpl460a_set_band;
 };
 
 __syscall int mpl460a_boot_write(const struct device *dev, uint32_t addr,
@@ -238,5 +257,113 @@ static inline int z_impl_mpl460a_set_pib(const struct device *dev,
     return api->mpl460a_set_pib(dev, register_id, value, len);
 }
 
+__syscall int mpl460a_set_mod_type(const struct device *dev,
+                                   PL460_MOD_TYPE mod);
+
+static inline int z_impl_mpl460a_set_mod_type(const struct device *dev,
+                                              PL460_MOD_TYPE mod)
+{
+    const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
+    if (api->mpl460a_set_mod_type == NULL)
+    {
+        return -ENOSYS;
+    }
+    return api->mpl460a_set_mod_type(dev, mod);
+}
+
+__syscall int mpl460a_set_tx_mode(const struct device *dev, PL460_TX_MODE mode);
+
+static inline int z_impl_mpl460a_set_tx_mode(const struct device *dev,
+                                             PL460_TX_MODE mode)
+{
+    const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
+    if (api->mpl460a_set_tx_mode == NULL)
+    {
+        return -ENOSYS;
+    }
+    return api->mpl460a_set_tx_mode(dev, mode);
+}
+
+__syscall int mpl460a_set_mod_scheme(const struct device *dev,
+                                     PL460_MOD_SCHEME scheme);
+
+static inline int z_impl_mpl460a_set_mod_scheme(const struct device *dev,
+                                                PL460_MOD_SCHEME scheme)
+{
+    const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
+    if (api->mpl460a_set_mod_scheme == NULL)
+    {
+        return -ENOSYS;
+    }
+    return api->mpl460a_set_mod_scheme(dev, scheme);
+}
+
+__syscall int mpl460a_set_delimiter(const struct device *dev,
+                                    PL460_DEL_TYPE del);
+
+static inline int z_impl_mpl460a_set_delimiter(const struct device *dev,
+                                               PL460_DEL_TYPE del)
+{
+    const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
+    if (api->mpl460a_set_delimiter == NULL)
+    {
+        return -ENOSYS;
+    }
+    return api->mpl460a_set_delimiter(dev, del);
+}
+
+__syscall int mpl460a_set_time_ini(const struct device *dev, uint32_t timeIni);
+
+static inline int z_impl_mpl460a_set_time_ini(const struct device *dev,
+                                              uint32_t timeIni)
+{
+    const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
+    if (api->mpl460a_set_timeIni == NULL)
+    {
+        return -ENOSYS;
+    }
+    return api->mpl460a_set_time_ini(dev, timeIni);
+}
+
+__syscall int mpl460a_set_attenuation(const struct device *dev, uint8_t atten);
+
+static inline int z_impl_mpl460a_set_attenuation(const struct device *dev,
+                                                 uint8_t atten)
+{
+    const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
+    if (api->mpl460a_set_attenuation == NULL)
+    {
+        return -ENOSYS;
+    }
+    return api->mpl460a_set_attenuation(dev, atten);
+}
+
+__syscall int mpl460a_set_band(const struct device *dev, PL460_BAND band);
+
+static inline int z_impl_mpl460a_set_band(const struct device *dev,
+                                          PL460_BAND band)
+{
+    const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
+    if (api->mpl460a_set_band == NULL)
+    {
+        return -ENOSYS;
+    }
+    return api->mpl460a_set_band(dev, band);
+}
+
+__syscall int mpl460a_fast_init(const struct device *dev, const uint8_t *data,
+                                const uint32_t size)
+
+    static inline int z_impl_mpl460a_fast_init(const struct device *dev,
+                                               const uint8_t *data,
+                                               const uint32_t size)
+{
+    const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
+    if (api->mpl460a_fast_init == NULL)
+    {
+        return -ENOSYS;
+    }
+    return api->mpl460a_fast_init(dev, data, size);
+}
 // Include syscall
 #include <syscalls/cisteme_mpl460a.h>

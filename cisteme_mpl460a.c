@@ -330,12 +330,16 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len)
     int ret;
 
     // Send TX_PARAMS
-    drv_data->params.dataLength = len << 8;
+    drv_data->params.dataLength = len;
+
+    uint16_t tx_params[20];
+    uint16_t *pSrc = (uint8_t *)&drv_data->params;
+    for (int i = 0; i < 20; i++)
+        tx_params[i] = sys_get_be16(pSrc + (i << 1));
 
     gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
 
-    ret = fw_id_send(dev, PL460_G3_TX_PARAM, (uint16_t *)&drv_data->params, 40,
-                     0, 0, true);
+    ret = fw_id_send(dev, PL460_G3_TX_PARAM, tx_params, 40, 0, 0, true);
     if (ret < 0)
         return ret;
 
@@ -445,6 +449,112 @@ static int get_pib(const struct device *dev, uint32_t register_id,
     return ret;
 }
 
+static int set_mod_type(const struct device *dev, PL460_MOD_TYPE mod)
+{
+    struct mpl460a_data *drv_data = dev->data;
+
+    drv_data->modType = mode;
+
+    return 0;
+}
+
+static int set_tx_mode(const struct device *dev, PL460_TX_MODE mode)
+{
+    struct mpl460a_data *drv_data = dev->data;
+
+    drv_data->mode = mode;
+
+    return 0;
+}
+
+static int set_mod_scheme(const struct device *dev, PL460_MOD_SCHEME scheme)
+{
+    struct mpl460a_data *drv_data = dev->data;
+
+    drv_data->modScheme = scheme;
+
+    return 0;
+}
+
+static int set_delimiter(const struct device *dev, PL460_DEL_TYPE del)
+{
+    struct mpl460a_data *drv_data = dev->data;
+
+    drv_data->delimiterType = del;
+
+    return 0;
+}
+
+static int set_time_ini(const struct device *dev, uint32_t timeIni)
+{
+    struct mpl460a_data *drv_data = dev->data;
+
+    drv_data->timeIni = timeIni;
+
+    return 0;
+}
+
+static int set_attenuation(const struct device *dev, uint8_t atten)
+{
+    struct mpl460a_data *drv_data = dev->data;
+
+    drv_data->attenuation = atten;
+
+    return 0;
+}
+
+static int set_band(const struct device *dev, PL460_BAND band)
+{
+    struct mpl460a_data *drv_data = dev->data;
+
+    switch (band)
+    {
+    case PL460_CENA:
+        memcpy(drv_data->toneMap, PL460_TONE_MAP_CENA, 3);
+        break;
+    case PL460_CENB:
+        memcpy(drv_data->toneMap, PL460_TONE_MAP_CENB, 3);
+        break;
+    case PL460_ARIB:
+        memcpy(drv_data->toneMap, PL460_TONE_MAP_ARIB, 3);
+        break;
+    case PL460_FCC:
+        memcpy(drv_data->toneMap, PL460_TONE_MAP_FCC, 3);
+        break;
+    default:
+        return -1;
+    }
+
+    return 0;
+}
+
+static int fast_init(const struct device *dev, const uint8_t *data,
+                     const uint32_t size)
+{
+
+    mpl460a_set_en(dev, 1);
+
+    k_msleep(100);
+
+    mpl460a_set_nrst(dev, 1);
+
+    int ret = mpl460a_boot_enable(dev);
+
+    k_msleep(100);
+
+    ret = mpl460a_boot_write_fw(dev, data, size);
+
+    k_msleep(100);
+
+    ret = mpl460a_boot_check_fw(dev, data, size);
+
+    k_msleep(100);
+
+    ret = mpl460a_boot_disable(dev);
+
+    return 0;
+}
+
 // Fill API with functions
 static const struct mpl460a_api api = {
     .mpl460a_boot_write = &boot_write,
@@ -452,6 +562,7 @@ static const struct mpl460a_api api = {
 
     .mpl460a_boot_write_fw = &boot_write_fw,
     .mpl460a_boot_check_fw = &boot_check_fw,
+    .mpl460a_fast_init = &fast_init,
 
     .mpl460a_set_nrst = &set_nrst,
     .mpl460a_set_en = &set_en,
@@ -463,6 +574,14 @@ static const struct mpl460a_api api = {
     .mpl460a_send = &fw_send,
     .mpl460a_get_pib = &get_pib,
     .mpl460a_set_pib = &set_pib,
+
+    .mpl460a_set_mod_type = &set_mod_type,
+    .mpl460a_set_tx_mode = &set_tx_mode,
+    .mpl460a_set_set_mod_scheme = &set_mod_scheme,
+    .mpl460a_set_delimiter = &set_delimiter,
+    .mpl460a_set_time_ini = &set_time_ini,
+    .mpl460a_set_attenuation = &set_attenuation,
+    .mpl460a_set_band = &set_band,
 };
 
 // Init function (called at creation)
@@ -517,14 +636,9 @@ static int mpl460a_init(const struct device *dev)
     drv_data->params.timeIni = 0;
     drv_data->params.dataLength = 0; // payload + FCS
     memset(drv_data->params.preemphasis, 0, 24);
-    drv_data->params.toneMap[0] = 0x00;
-    drv_data->params.toneMap[1] = 0x0F;
-    drv_data->params.toneMap[2] = 0x3;
-    drv_data->params.mode = 0;
-
-    // drv_data->params.toneMap[0] = 0x3F;
-    // memset(drv_data->params.toneMap + 1, 0, 2);
-    // drv_data->params.mode = 3;
+    drv_data->params.toneMap[0] = 0x3F;
+    memset(drv_data->params.toneMap + 1, 0, 2);
+    drv_data->params.mode = 3;
     drv_data->params.attenuation = 0;
     drv_data->params.modType = 0;
     drv_data->params.modScheme = 0;
