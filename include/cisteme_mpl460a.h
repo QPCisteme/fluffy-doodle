@@ -64,12 +64,15 @@ struct mpl460a_data
     PL460_EVENT_DATA irq_events;
 
     struct gpio_callback extin_cb_data;
-    struct k_work get_event_work, tx_cfm_work, rx_data_work, rx_params;
+    struct k_work get_event_work;
 
     struct k_sem isr_sem;
 
     mpl460a_tx_cb_t tx_cb;
-    mpl460a_tx_cb_t rx_cb;
+    mpl460a_rx_cb_t rx_cb;
+
+    uint16_t *rx_data;
+    uint8_t rx_len;
 };
 
 // API declaration
