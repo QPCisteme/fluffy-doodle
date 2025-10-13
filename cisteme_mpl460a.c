@@ -452,7 +452,7 @@ static int set_mod_type(const struct device *dev, PL460_MOD_TYPE mod)
 {
     struct mpl460a_data *drv_data = dev->data;
 
-    drv_data->params->modType = mode;
+    drv_data->params.modType = mod;
 
     return 0;
 }
@@ -461,7 +461,7 @@ static int set_tx_mode(const struct device *dev, PL460_TX_MODE mode)
 {
     struct mpl460a_data *drv_data = dev->data;
 
-    drv_data->params->mode = mode;
+    drv_data->params.mode = mode;
 
     return 0;
 }
@@ -470,7 +470,7 @@ static int set_mod_scheme(const struct device *dev, PL460_MOD_SCHEME scheme)
 {
     struct mpl460a_data *drv_data = dev->data;
 
-    drv_data->params->modScheme = scheme;
+    drv_data->params.modScheme = scheme;
 
     return 0;
 }
@@ -479,7 +479,7 @@ static int set_delimiter(const struct device *dev, PL460_DEL_TYPE del)
 {
     struct mpl460a_data *drv_data = dev->data;
 
-    drv_data->params->delimiterType = del;
+    drv_data->params.delimiterType = del;
 
     return 0;
 }
@@ -488,7 +488,7 @@ static int set_time_ini(const struct device *dev, uint32_t timeIni)
 {
     struct mpl460a_data *drv_data = dev->data;
 
-    drv_data->params->timeIni = timeIni;
+    drv_data->params.timeIni = timeIni;
 
     return 0;
 }
@@ -497,7 +497,7 @@ static int set_attenuation(const struct device *dev, uint8_t atten)
 {
     struct mpl460a_data *drv_data = dev->data;
 
-    drv_data->params->attenuation = atten;
+    drv_data->params.attenuation = atten;
 
     return 0;
 }
@@ -506,26 +506,30 @@ static int set_band(const struct device *dev, PL460_BAND band)
 {
     struct mpl460a_data *drv_data = dev->data;
 
-    uint8_t toneMap[3];
-
     switch (band)
     {
     case PL460_BAND_CENA:
-        toneMap[3] = {0x3F, 0x00, 0x00};
+        memcpy(data->params.toneMap, (uint8_t[]){0x3F, 0x00, 0x00},
+               sizeof(toneMap));
         break;
+
     case PL460_BAND_CENB:
-        toneMap[3] = {0x0F, 0x00, 0x00};
+        memcpy(data->params.toneMap, (uint8_t[]){0x0F, 0x00, 0x00},
+               sizeof(toneMap));
         break;
+
     case PL460_BAND_ARIB:
-        toneMap[3] = {0xFF, 0xFF, 0x03};
+        memcpy(data->params.toneMap, (uint8_t[]){0xFF, 0xFF, 0x03},
+               sizeof(toneMap));
         break;
+
     case PL460_BAND_FCC:
-        toneMap[3] = {0xFF, 0xFF, 0xFF};
+        memcpy(data->params.toneMap, (uint8_t[]){0xFF, 0xFF, 0xFF},
+               sizeof(toneMap));
         break;
+
     default:
         return -1;
-
-        memcpy(drv_data->params->toneMap, toneMap, 3);
     }
 
     return 0;
