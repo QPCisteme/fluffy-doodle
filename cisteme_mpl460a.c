@@ -261,19 +261,6 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
     if (ret < 0)
         return ret;
 
-    uint8_t *p;
-    p = (uint8_t *)tx;
-    printk("TX : ");
-    for (int i = 0; i < tx_size; i++)
-        printk("%.2x ", p[i]);
-    printk("\r\n");
-
-    p = (uint8_t *)rx;
-    printk("RX : ");
-    for (int i = 0; i < rx_size; i++)
-        printk("%.2x ", p[i]);
-    printk("\r\n");
-
     // Check FW header
     uint16_t header = sys_get_be16(&rx_header[0]);
     if (header != PL460_FW_HEADER)
@@ -309,7 +296,6 @@ void extin_IRQ(const struct device *dev, struct gpio_callback *cb,
     struct mpl460a_data *data =
         CONTAINER_OF(cb, struct mpl460a_data, extin_cb_data);
 
-    printk("IRQ1\r\n");
     uint32_t timer_ref, event_info;
     int event = fw_get_events(dev, &timer_ref, &event_info);
 
