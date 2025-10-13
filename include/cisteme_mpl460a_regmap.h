@@ -77,11 +77,6 @@ typedef struct __attribute__((packed))
     uint8_t delimiterType;
 } CENA_TX_PARAM;
 
-#define PL460_TONE_MAP_CENA {0x3F, 0x00, 0x00}
-#define PL460_TONE_MAP_CENB {0x0F, 0x00, 0x00}
-#define PL460_TONE_MAP_ARIB {0xFF, 0xFF, 0x03}
-#define PL460_TONE_MAP_FCC {0xFF, 0xFF, 0xFF}
-
 typedef enum
 {
     PL460_BAND_CENA = 0x00,
