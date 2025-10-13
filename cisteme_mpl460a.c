@@ -534,30 +534,29 @@ static int set_band(const struct device *dev, PL460_BAND band)
 static int fast_init(const struct device *dev, const uint8_t *data,
                      const uint32_t size)
 {
-
-    mpl460a_set_en(dev, 1);
-
-    k_msleep(100);
-
-    mpl460a_set_nrst(dev, 1);
-
-    int ret = mpl460a_boot_enable(dev);
+    set_en(dev, 1);
 
     k_msleep(100);
 
-    ret = mpl460a_boot_write_fw(dev, data, size);
+    set_nrst(dev, 1);
+
+    int ret = boot_enable(dev);
+
+    k_msleep(100);
+
+    ret = boot_write_fw(dev, data, size);
     if (ret < 0)
         return -1;
 
     k_msleep(100);
 
-    ret = mpl460a_boot_check_fw(dev, data, size);
+    ret = boot_check_fw(dev, data, size);
     if (ret < 0)
         return ret;
 
     k_msleep(100);
 
-    ret = mpl460a_boot_disable(dev);
+    ret = boot_disable(dev);
     if (ret < 0)
         return -2;
 
