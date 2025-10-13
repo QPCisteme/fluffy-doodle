@@ -535,36 +535,30 @@ static int fast_init(const struct device *dev, const uint8_t *data,
                      const uint32_t size)
 {
     set_en(dev, 1);
-    printk("PL460 Enabled\r\n");
 
-    k_msleep(100);
+    k_msleep(200);
 
     set_nrst(dev, 1);
-    printk("PL460 Out of Reset\r\n");
 
     int ret = boot_enable(dev);
-    printk("Boot enabled\r\n");
 
-    k_msleep(100);
+    k_msleep(200);
 
     ret = boot_write_fw(dev, data, size);
     if (ret < 0)
         return -1;
-    printk("PL460 FW written\r\n");
 
-    k_msleep(100);
+    k_msleep(200);
 
     ret = boot_check_fw(dev, data, size);
-    printk("PL460 FW errors : %d\r\n", ret);
     if (ret < 0)
         return ret;
 
-    k_msleep(100);
+    k_msleep(200);
 
     ret = boot_disable(dev);
     if (ret < 0)
         return -2;
-    printk("PL460 Boot Disabled\r\n");
 
     return 0;
 }
