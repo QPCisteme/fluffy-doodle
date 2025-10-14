@@ -348,9 +348,9 @@ static void wq_rx_params(const struct device *dev)
 
     int ret;
 
-    uint8_t rx_params[112];
+    uint8_t rx_params[117];
 
-    ret = fw_id_send(dev, PL460_G3_RX_PARAM, 0, 0, rx_params, 112, false);
+    ret = fw_id_send(dev, PL460_G3_RX_PARAM, 0, 0, rx_params, 117, false);
     if (ret < 0)
         return;
 
