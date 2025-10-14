@@ -260,15 +260,15 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint8_t *tx,
     if (ret < 0)
         return ret;
 
-    // printk("TX : ");
-    // for (int i = 0; i < tx_size; i++)
-    //     printk("%.2x ", tx[i]);
-    // printk("\r\n");
+    printk("TX : ");
+    for (int i = 0; i < tx_size; i++)
+        printk("%.2x ", tx[i]);
+    printk("\r\n");
 
-    // printk("RX : ");
-    // for (int i = 0; i < rx_size; i++)
-    //     printk("%.2x ", rx[i]);
-    // printk("\r\n");
+    printk("RX : ");
+    for (int i = 0; i < rx_size; i++)
+        printk("%.2x ", rx[i]);
+    printk("\r\n");
 
     // Check FW header
     uint16_t header = sys_get_be16(&rx_header[0]);
@@ -399,7 +399,6 @@ static void wq_get_event(struct k_work *work)
 
     uint32_t timer_ref, event_info;
     int ret = fw_get_events(data->dev, &timer_ref, &event_info);
-    printk("IRQ Events : %.4x", ret);
 
     data->irq_events.flag = (uint16_t)ret;
     data->irq_events.tref = timer_ref;
