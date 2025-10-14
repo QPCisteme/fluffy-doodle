@@ -392,7 +392,7 @@ static void wq_rx_data(const struct device *dev)
 
     if (ret & PL460_RX_PARAM_FLAG)
     {
-        wq_rx_params(data->dev);
+        wq_rx_params(dev);
         return;
     }
 
