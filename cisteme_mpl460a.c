@@ -334,13 +334,21 @@ static void wq_rx_data(const struct device *dev)
 {
     struct mpl460a_data *drv_data = dev->data;
 
+    printk("TP0\r\n");
+
     drv_data->rx_len = (drv_data->irq_events.info & 0x000000FF);
+
+    printk("TP1 : rxlen %d\r\n", drv_data->rx_len);
 
     int ret = fw_id_send(dev, PL460_G3_RX_DATA, 0, 0, drv_data->rx_data,
                          drv_data->rx_len, false);
 
+    printk("TP2\r\n");
+
     drv_data->rx_cb(dev, drv_data->rx_data + 2, sys_get_le16(drv_data->rx_data),
                     NULL);
+
+    printk("TP3\r\n");
 
     return;
 }
@@ -400,7 +408,6 @@ static void wq_get_event(struct k_work *work)
 
     uint32_t timer_ref, event_info;
     int ret = fw_get_events(data->dev, &timer_ref, &event_info);
-    printk("IRQ Events : %.4x", ret);
 
     data->irq_events.flag = (uint16_t)ret;
     data->irq_events.tref = timer_ref;
