@@ -309,19 +309,14 @@ void extin_IRQ(const struct device *dev, struct gpio_callback *cb,
 
 static void wq_tx_cfm(struct k_work *work)
 {
-    struct mpl460a_data *drv_data =
-        CONTAINER_OF(work, struct mpl460a_data, tx_cfm_work);
+    struct mpl460a_data *drv_data = dev->data;
 
     uint8_t rx_cfm[10];
     uint32_t t_time, rms;
     uint8_t result;
-    int ret =
-        fw_id_send(drv_data->dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 10, false);
+    int ret = fw_id_send(dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 10, false);
     if (ret < 0)
-    {
-        printk("Err : %d\r\n", ret);
         return;
-    }
 
     rms = (sys_get_be16(rx_cfm + 2) << 16) | (sys_get_be16(rx_cfm));
 
@@ -330,44 +325,34 @@ static void wq_tx_cfm(struct k_work *work)
     result = rx_cfm[9];
 
     if (drv_data->tx_cb != NULL)
-        drv_data->tx_cb(drv_data->dev, t_time, rms, result);
+        drv_data->tx_cb(dev, t_time, rms, result);
 
     return;
 }
 
 static void wq_rx_data(struct k_work *work)
 {
-    struct mpl460a_data *drv_data =
-        CONTAINER_OF(work, struct mpl460a_data, rx_data_work);
+    struct mpl460a_data *drv_data = dev->data;
 
     drv_data->rx_len = (drv_data->irq_events.info & 0x000000FF);
 
-    int ret = fw_id_send(drv_data->dev, PL460_G3_RX_DATA, 0, 0,
-                         drv_data->rx_data, drv_data->rx_len, false);
-    if (ret < 0)
-    {
-        printk("Err : %d\r\n", ret);
-        return;
-    }
+    int ret = fw_id_send(dev, PL460_G3_RX_DATA, 0, 0, drv_data->rx_data,
+                         drv_data->rx_len, false);
+
     return;
 }
 
 static void wq_rx_param(struct k_work *work)
 {
-    struct mpl460a_data *drv_data =
-        CONTAINER_OF(work, struct mpl460a_data, rx_param_work);
+    struct mpl460a_data *drv_data = dev->data;
 
     int ret;
 
     uint8_t rx_params[117];
 
-    ret = fw_id_send(drv_data->dev, PL460_G3_RX_PARAM, 0, 0, rx_params, 117,
-                     false);
+    ret = fw_id_send(dev, PL460_G3_RX_PARAM, 0, 0, rx_params, 117, false);
     if (ret < 0)
-    {
-        printk("Err : %d\r\n", ret);
         return;
-    }
 
     PL460_RX_PARAM params;
 
@@ -402,8 +387,8 @@ static void wq_rx_param(struct k_work *work)
     memcpy(params.puc_tone_map, rx_params + 42, 3);
     memcpy(params.puc_carrier_snr, rx_params + 45, 72);
 
-    drv_data->rx_cb(drv_data->dev, drv_data->rx_data + 2,
-                    sys_get_le16(drv_data->rx_data), &params);
+    drv_data->rx_cb(dev, drv_data->rx_data + 2, sys_get_le16(drv_data->rx_data),
+                    &params);
     return;
 }
 
@@ -411,15 +396,11 @@ static void wq_get_event(struct k_work *work)
 {
     struct mpl460a_data *drv_data =
         CONTAINER_OF(work, struct mpl460a_data, get_event_work);
-    const struct mpl460a_config *cfg = drv_data->dev->config;
 
     uint32_t timer_ref, event_info;
-    int ret = fw_get_events(drv_data->dev, &timer_ref, &event_info);
+    int ret = fw_get_events(data->dev, &timer_ref, &event_info);
     if (ret < 0)
-    {
-        printk("Err : %d\r\n", ret);
         return;
-    }
 
     drv_data->irq_events.flag = (uint16_t)ret;
     drv_data->irq_events.tref = timer_ref;
@@ -427,25 +408,23 @@ static void wq_get_event(struct k_work *work)
 
     if (ret & PL460_TX_CFM_FLAG)
     {
-        k_work_submit(&drv_data->tx_cfm_work);
+        wq_tx_cfm(data->dev);
     }
 
     if (ret & PL460_RX_DATA_FLAG)
     {
-        k_work_submit(&drv_data->rx_data_work);
+        wq_rx_data(data->dev);
     }
 
     if (ret & PL460_REG_DATA_FLAG)
     {
-        k_sem_give(&drv_data->isr_sem);
+        k_sem_give(&data->isr_sem);
     }
 
     if (ret & PL460_RX_PARAM_FLAG)
     {
-        k_work_submit(&drv_data->rx_param_work);
+        wq_rx_params(data->dev);
     }
-
-    gpio_pin_interrupt_configure_dt(&cfg->extin, GPIO_INT_DISABLE);
 }
 
 static int fw_send(const struct device *dev, uint8_t *data, uint8_t len,
@@ -456,7 +435,6 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len,
         return -1;
 
     struct mpl460a_data *drv_data = dev->data;
-    const struct mpl460a_config *drv_config = dev->config;
 
     int ret;
 
@@ -472,8 +450,6 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len,
         tx_params[i + 1] = pSrc[i];
     }
 
-    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
-
     ret = fw_id_send(dev, PL460_G3_TX_PARAM, tx_params, 40, 0, 0, true);
     if (ret < 0)
         return ret;
@@ -487,13 +463,11 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len,
 static int fw_receive(const struct device *dev, mpl460a_rx_cb_t callback)
 {
     struct mpl460a_data *drv_data = dev->data;
-    const struct mpl460a_config *drv_config = dev->config;
 
     if (callback == NULL)
         return -1;
 
     drv_data->rx_cb = callback;
-    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
 
     return 0;
 }
@@ -529,7 +503,6 @@ static int get_pib(const struct device *dev, uint32_t register_id,
                    uint8_t *value, uint16_t len)
 {
     struct mpl460a_data *drv_data = dev->data;
-    const struct mpl460a_config *drv_config = dev->config;
 
     int ret;
 
@@ -539,8 +512,6 @@ static int get_pib(const struct device *dev, uint32_t register_id,
     sys_put_le16(register_id & 0x0fff, tx_data + 2);
     sys_put_le16(len, tx_data + 4);
     sys_put_le16(0x0000, tx_data + 4);
-
-    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
 
     ret = fw_id_send(dev, PL460_G3_REG_INFO, tx_data, 8, 0, 0, true);
     if (ret < 0)
@@ -792,7 +763,7 @@ static int mpl460a_init(const struct device *dev)
     k_work_init(&drv_data->rx_data_work, wq_rx_data);
     k_work_init(&drv_data->tx_cfm_work, wq_tx_cfm);
 
-    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLE);
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
     gpio_init_callback(&drv_data->extin_cb_data, extin_IRQ,
                        BIT(drv_config->extin.pin));
     gpio_add_callback(drv_config->extin.port, &drv_data->extin_cb_data);
