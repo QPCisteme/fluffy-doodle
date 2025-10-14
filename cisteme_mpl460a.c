@@ -334,7 +334,7 @@ static void wq_rx_data(const struct device *dev)
 {
     struct mpl460a_data *drv_data = dev->data;
 
-    drv_data->rx_len = (drv_data->irq_events.info & 0x000000FF);
+    drv_data->rx_len = (drv_data->irq_events.info & 0x000000FE);
 
     int ret = fw_id_send(dev, PL460_G3_RX_DATA, 0, 0, drv_data->rx_data,
                          drv_data->rx_len, false);
