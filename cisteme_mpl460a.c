@@ -230,16 +230,12 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint8_t *tx,
     uint8_t tx_header[4];
     uint8_t rx_header[4];
 
-    if (tx_size & 0x01)
-        tx_size++;
-
-    if (rx_size & 0x01 & (id != PL460_G3_RX_DATA))
-        rx_size++;
+    uint8_t cmd_len = (MAX(tx_size, rx_size) + 1) >> 1;
 
     // Copy ID (BE)
     sys_put_be16(id, tx_header);
     // Copy length (BE)
-    sys_put_be16(MAX(tx_size >> 1, rx_size >> 1), tx_header + 2);
+    sys_put_be16(cmd_len, tx_header + 2);
 
     // Update R/W bit
     if (write)
