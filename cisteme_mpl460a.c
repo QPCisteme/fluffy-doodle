@@ -486,9 +486,9 @@ static int set_pib(const struct device *dev, uint32_t register_id,
 
     uint8_t tx_data[6 + size];
 
-    sys_put_be16(register_id >> 16, tx_data);
-    sys_put_be16(register_id & 0xffff, tx_data + 2);
-    sys_put_be16((1 << 10) | len, tx_data + 4);
+    sys_put_le16(register_id >> 16, tx_data);
+    sys_put_le16(register_id & 0x0fff, tx_data + 2);
+    sys_put_le16((1 << 10) | len, tx_data + 4);
     for (int i = 0; i < size; i += 2)
     {
         tx_data[6 + i] = i < len ? value[i + 1] : 0x00;
@@ -511,10 +511,10 @@ static int get_pib(const struct device *dev, uint32_t register_id,
 
     // Send register_id, len and dummy
     uint8_t tx_data[8];
-    sys_put_be16(register_id >> 16, tx_data);
-    sys_put_be16(register_id & 0xffff, tx_data + 2);
-    sys_put_be16(len, tx_data + 4);
-    sys_put_be16(0x0000, tx_data + 4);
+    sys_put_le16(register_id >> 16, tx_data);
+    sys_put_le16(register_id & 0x0fff, tx_data + 2);
+    sys_put_le16(len, tx_data + 4);
+    sys_put_le16(0x0000, tx_data + 4);
 
     ret = fw_id_send(dev, PL460_G3_REG_INFO, tx_data, 8, 0, 0, true);
     if (ret < 0)
