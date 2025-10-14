@@ -443,6 +443,8 @@ static void wq_get_event(struct k_work *work)
     {
         k_work_submit(&drv_data->rx_param_work);
     }
+
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLE);
 }
 
 static int fw_send(const struct device *dev, uint8_t *data, uint8_t len,
@@ -453,6 +455,7 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len,
         return -1;
 
     struct mpl460a_data *drv_data = dev->data;
+    const struct mpl460a_config *drv_config = dev->config;
 
     int ret;
 
@@ -468,6 +471,8 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len,
         tx_params[i + 1] = pSrc[i];
     }
 
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
+
     ret = fw_id_send(dev, PL460_G3_TX_PARAM, tx_params, 40, 0, 0, true);
     if (ret < 0)
         return ret;
@@ -481,11 +486,13 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len,
 static int fw_receive(const struct device *dev, mpl460a_rx_cb_t callback)
 {
     struct mpl460a_data *drv_data = dev->data;
+    const struct mpl460a_config *drv_config = dev->config;
 
     if (callback == NULL)
         return -1;
 
     drv_data->rx_cb = callback;
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
 
     return 0;
 }
@@ -510,6 +517,8 @@ static int set_pib(const struct device *dev, uint32_t register_id,
         tx_data[7 + i] = value[i];
     }
 
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
+
     ret = fw_id_send(dev, PL460_G3_REG_INFO, tx_data, 6 + size, 0, 0, true);
     if (ret < 0)
         return ret;
@@ -521,6 +530,7 @@ static int get_pib(const struct device *dev, uint32_t register_id,
                    uint8_t *value, uint16_t len)
 {
     struct mpl460a_data *drv_data = dev->data;
+    const struct mpl460a_config *drv_config = dev->config;
 
     int ret;
 
@@ -781,7 +791,7 @@ static int mpl460a_init(const struct device *dev)
     k_work_init(&drv_data->rx_data_work, wq_rx_data);
     k_work_init(&drv_data->tx_cfm_work, wq_tx_cfm);
 
-    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLE);
     gpio_init_callback(&drv_data->extin_cb_data, extin_IRQ,
                        BIT(drv_config->extin.pin));
     gpio_add_callback(drv_config->extin.port, &drv_data->extin_cb_data);
