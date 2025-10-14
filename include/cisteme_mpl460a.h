@@ -26,11 +26,11 @@ typedef int (*mpl460a_boot_fw_cmd_t)(const struct device *dev, uint8_t *data,
                                      uint32_t size);
 typedef int (*mpl460a_set_cmd_t)(const struct device *dev, uint8_t state);
 typedef int (*mpl460a_cmd_t)(const struct device *dev);
-typedef int (*mpl460a_data_cmd_t)(const struct device *dev, uint16_t *data,
+typedef int (*mpl460a_data_cmd_t)(const struct device *dev, uint8_t *data,
                                   uint8_t len);
 
 typedef int (*mpl460a_pib_cmd_t)(const struct device *dev, uint32_t register_id,
-                                 uint16_t *value, uint16_t len);
+                                 uint8_t *value, uint16_t len);
 
 typedef int (*mpl460a_mod_type_t)(const struct device *dev, PL460_MOD_TYPE mod);
 typedef int (*mpl460a_tx_mode_t)(const struct device *dev, PL460_TX_MODE mode);
@@ -44,10 +44,10 @@ typedef int (*mpl460a_band_t)(const struct device *dev, PL460_BAND band);
 
 typedef int (*mpl460a_tx_cb_t)(const struct device *dev, uint32_t t_time,
                                uint32_t RMS, uint8_t result);
-typedef int (*mpl460a_rx_cb_t)(const struct device *dev, uint16_t *data,
-                               uint8_t len);
+typedef int (*mpl460a_rx_cb_t)(const struct device *dev, uint8_t *data,
+                               uint8_t len, PL460_RX_PARAMS *params);
 
-typedef int (*mpl460a_send_t)(const struct device *dev, uint16_t *data,
+typedef int (*mpl460a_send_t)(const struct device *dev, uint8_t *data,
                               uint8_t len, mpl460a_tx_cb_t callback);
 typedef int (*mpl460a_receive_t)(const struct device *dev,
                                  mpl460a_rx_cb_t callback);
@@ -71,7 +71,7 @@ struct mpl460a_data
     mpl460a_tx_cb_t tx_cb;
     mpl460a_rx_cb_t rx_cb;
 
-    uint16_t *rx_data;
+    uint8_t rx_data[256];
     uint8_t rx_len;
 };
 
@@ -231,10 +231,10 @@ static inline int z_impl_mpl460a_boot_disable(const struct device *dev)
     return api->mpl460a_boot_disable(dev);
 }
 
-__syscall int mpl460a_send(const struct device *dev, uint16_t *data,
-                           uint8_t len, mpl460a_tx_cb_t callback);
+__syscall int mpl460a_send(const struct device *dev, uint8_t *data, uint8_t len,
+                           mpl460a_tx_cb_t callback);
 
-static inline int z_impl_mpl460a_send(const struct device *dev, uint16_t *data,
+static inline int z_impl_mpl460a_send(const struct device *dev, uint8_t *data,
                                       uint8_t len, mpl460a_tx_cb_t callback)
 {
     const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
@@ -246,10 +246,10 @@ static inline int z_impl_mpl460a_send(const struct device *dev, uint16_t *data,
 }
 
 __syscall int mpl460a_get_pib(const struct device *dev, uint32_t register_id,
-                              uint16_t *value, uint16_t len);
+                              uint8_t *value, uint16_t len);
 
 static inline int z_impl_mpl460a_get_pib(const struct device *dev,
-                                         uint32_t register_id, uint16_t *value,
+                                         uint32_t register_id, uint8_t *value,
                                          uint16_t len)
 {
     const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
@@ -261,10 +261,10 @@ static inline int z_impl_mpl460a_get_pib(const struct device *dev,
 }
 
 __syscall int mpl460a_set_pib(const struct device *dev, uint32_t register_id,
-                              uint16_t *value, uint16_t len);
+                              uint8_t *value, uint16_t len);
 
 static inline int z_impl_mpl460a_set_pib(const struct device *dev,
-                                         uint32_t register_id, uint16_t *value,
+                                         uint32_t register_id, uint8_t *value,
                                          uint16_t len)
 {
     const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;

@@ -3,7 +3,6 @@
 
 // Include libs
 #include <stdio.h>
-#include <stdlib.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/spi.h>
@@ -223,9 +222,8 @@ static int boot_disable(const struct device *dev)
     return 0;
 }
 
-static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
-                      uint8_t tx_size, uint16_t *rx, uint8_t rx_size,
-                      bool write)
+static int fw_id_send(const struct device *dev, uint16_t id, uint8_t *tx,
+                      uint8_t tx_size, uint8_t *rx, uint8_t rx_size, bool write)
 {
     const struct mpl460a_config *drv_config = dev->config;
 
@@ -249,12 +247,12 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
 
     // SPI communication
     struct spi_buf tx_spi_buf[2] = {{.buf = tx_header, .len = 4},
-                                    {.buf = (uint8_t *)tx, .len = tx_size}};
+                                    {.buf = tx, .len = tx_size}};
     struct spi_buf_set tx_spi_data_set = {.buffers = tx_spi_buf, .count = 2};
 
     // RX buffers
     struct spi_buf rx_spi_buf[2] = {{.buf = rx_header, .len = 4},
-                                    {.buf = (uint8_t *)rx, .len = rx_size}};
+                                    {.buf = rx, .len = rx_size}};
     struct spi_buf_set rx_spi_data_set = {.buffers = rx_spi_buf, .count = 2};
 
     int ret =
@@ -262,17 +260,14 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
     if (ret < 0)
         return ret;
 
-    uint8_t *p;
-    p = (uint8_t *)tx;
     printk("TX : ");
     for (int i = 0; i < tx_size; i++)
-        printk("%.2x ", p[i]);
+        printk("%.2x ", tx[i]);
     printk("\r\n");
 
-    p = (uint8_t *)rx;
     printk("RX : ");
     for (int i = 0; i < rx_size; i++)
-        printk("%.2x ", p[i]);
+        printk("%.2x ", rx[i]);
     printk("\r\n");
 
     // Check FW header
@@ -289,17 +284,16 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint16_t *tx,
 static int fw_get_events(const struct device *dev, uint32_t *timer_ref,
                          uint32_t *event_info)
 {
-    uint16_t rx_data[4];
+    uint8_t rx_data[8];
     uint16_t events = fw_id_send(dev, PL460_G3_STATUS, 0, 0, rx_data, 8, false);
 
     if (events < 0)
         return events;
 
-    *timer_ref = (sys_get_be16((uint8_t *)rx_data + 2) << 16) |
-                 (sys_get_be16((uint8_t *)rx_data));
+    *timer_ref = (sys_get_be16(rx_data + 2) << 16) | (sys_get_be16(rx_data));
 
-    *event_info = (sys_get_be16((uint8_t *)rx_data + 6) << 16) |
-                  (sys_get_be16((uint8_t *)rx_data + 4));
+    *event_info =
+        (sys_get_be16(rx_data + 6) << 16) | (sys_get_be16(rx_data + 4));
 
     return events;
 }
@@ -317,20 +311,18 @@ static void wq_tx_cfm(const struct device *dev)
 {
     struct mpl460a_data *drv_data = dev->data;
 
-    uint16_t rx_cfm[5];
+    uint8_t rx_cfm[10];
     uint32_t t_time, rms;
     uint8_t result;
     int ret = fw_id_send(dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 10, false);
     if (ret < 0)
         return;
 
-    rms = (sys_get_be16((uint8_t *)rx_cfm + 2) << 16) |
-          (sys_get_be16((uint8_t *)rx_cfm));
+    rms = (sys_get_be16(rx_cfm + 2) << 16) | (sys_get_be16(rx_cfm));
 
-    t_time = (sys_get_be16((uint8_t *)rx_cfm + 6) << 16) |
-             (sys_get_be16((uint8_t *)rx_cfm + 4));
+    t_time = (sys_get_be16(rx_cfm + 6) << 16) | (sys_get_be16(rx_cfm + 4));
 
-    result = (uint8_t)(rx_cfm[4] >> 8);
+    result = rx_cfm[9];
 
     if (drv_data->tx_cb != NULL)
         drv_data->tx_cb(dev, t_time, rms, result);
@@ -344,19 +336,12 @@ static void wq_rx_data(const struct device *dev)
 
     drv_data->rx_len = (drv_data->irq_events.info & 0x00FF);
 
-    drv_data->rx_data = malloc((drv_data->rx_len >> 1) * sizeof(uint16_t));
-
     int ret = fw_id_send(dev, PL460_G3_RX_DATA, 0, 0, drv_data->rx_data,
                          drv_data->rx_len, false);
     if (ret < 0)
     {
-        free(drv_data->rx_data);
         return;
     }
-
-    drv_data->rx_cb(dev, drv_data->rx_data, drv_data->rx_len);
-
-    free(drv_data->rx_data);
 
     return;
 }
@@ -365,14 +350,46 @@ static void wq_rx_params(const struct device *dev)
 {
     struct mpl460a_data *drv_data = dev->data;
 
-    drv_data->rx_data = malloc(50 * sizeof(uint16_t));
+    uint8_t rx_params[118];
 
-    fw_id_send(dev, PL460_G3_RX_PARAM, 0, 0, drv_data->rx_data, 100, false);
+    fw_id_send(dev, PL460_G3_RX_PARAM, 0, 0, rx_params, 118, false);
+    if (ret < 0)
+        return;
 
-    printk("RSSI : %d", drv_data->rx_data[4]);
+    PL460_RX_PARAM params;
 
-    free(drv_data->rx_data);
+    params.ul_rx_time =
+        (sys_get_be16(rx_params + 2) << 16) | (sys_get_be16(rx_params));
+    params.ul_frame_duration =
+        (sys_get_be16(rx_params + 6) << 16) | (sys_get_be16(rx_params + 4));
+    params.us_rssi = sys_get_be16(rx_params + 8);
+    params.us_data_len = sys_get_be16(rx_params + 10);
+    params.uc_zct_diff = rx_params + 12;
+    params.uc_rs_corrected_error = rx_params + 13;
+    params.uc_mod_type = rx_params + 14;
+    params.uc_mod_scheme = rx_params + 15;
+    params.ul_agc_factor = sys_get_be16(rx_params + 16);
+    params.ul_agc_fine = sys_get_be16(rx_params + 18);
+    params.ss_agc_offset_meas = sys_get_be16(rx_params + 20);
+    params.uc_agc_active = rx_params + 22;
+    params.uc_agc_pga_value = rx_params + 23;
+    params.ss_snr_fch = sys_get_be16(rx_params + 24);
+    params.ss_snr_pay = sys_get_be16(rx_params + 26);
+    params.us_payload_corrupted_carriers = sys_get_be16(rx_params + 28);
+    params.us_payload_noised_symbols = sys_get_be16(rx_params + 30);
+    params.uc_payload_snr_worst_carrier = rx_params + 32;
+    params.uc_payload_snr_worst_symbol = rx_params + 33;
+    params.uc_payload_snr_impulsive = rx_params + 34;
+    params.uc_payload_snr_band = rx_params + 35;
+    params.uc_payload_snr_background = rx_params + 36;
+    params.uc_lqi = rx_params + 37;
+    params.uc_delimiter_type = rx_params + 38;
+    params.uc_crc_ok = rx_params + 39;
+    memcpy(params.puc_tone_map, rx_params +, 3);
+    memcpy(params.puc_carrier_snr, rx_params +, 72);
 
+    drv_data->rx_cb(dev, drv_data->rx_data + 2,
+                    sys_get_le16((uint8_t *)drv_data->rx_data), &params);
     return;
 }
 
@@ -411,7 +428,7 @@ static void wq_get_event(struct k_work *work)
     }
 }
 
-static int fw_send(const struct device *dev, uint16_t *data, uint8_t len,
+static int fw_send(const struct device *dev, uint8_t *data, uint8_t len,
                    mpl460a_tx_cb_t callback)
 {
     // Limit packet length
@@ -426,10 +443,13 @@ static int fw_send(const struct device *dev, uint16_t *data, uint8_t len,
     drv_data->params.dataLength = len;
     drv_data->tx_cb = callback;
 
-    uint16_t tx_params[20];
+    uint8_t tx_params[40];
     uint8_t *pSrc = (uint8_t *)&drv_data->params;
-    for (int i = 0; i < 20; i++)
-        tx_params[i] = sys_get_be16(pSrc + (i << 1));
+    for (int i = 0; i < 40; i += 2)
+    {
+        tx_params[i] = pSrc[i + 1];
+        tx_params[i + 1] = pSrc[i];
+    }
 
     ret = fw_id_send(dev, PL460_G3_TX_PARAM, tx_params, 40, 0, 0, true);
     if (ret < 0)
@@ -454,7 +474,7 @@ static int fw_receive(const struct device *dev, mpl460a_rx_cb_t callback)
 }
 
 static int set_pib(const struct device *dev, uint32_t register_id,
-                   uint16_t *value, uint16_t len)
+                   uint8_t *value, uint16_t len)
 {
     int ret;
 
@@ -462,11 +482,16 @@ static int set_pib(const struct device *dev, uint32_t register_id,
     if (len & 0x01)
         size++;
 
-    uint16_t tx_data[3 + (size >> 1)];
-    tx_data[0] = (uint16_t)(register_id >> 16);
-    tx_data[1] = (uint16_t)(register_id & 0x0fff);
-    tx_data[2] = (1 << 10) | len;
-    memcpy(&tx_data[3], value, size);
+    uint8_t tx_data[6 + size];
+
+    sys_put_be16(register_id >> 16, tx_data);
+    sys_put_be16(register_id & 0xffff, tx_data + 2);
+    sys_put_be16((1 << 10) | len, tx_data + 4);
+    for (int i = 0; i < size; i += 2)
+    {
+        tx_data[6 + i] = i < len ? value[i + 1] : 0x00;
+        tx_data[7 + i] = value[i];
+    }
 
     ret = fw_id_send(dev, PL460_G3_REG_INFO, tx_data, 6 + size, 0, 0, true);
     if (ret < 0)
@@ -476,15 +501,18 @@ static int set_pib(const struct device *dev, uint32_t register_id,
 }
 
 static int get_pib(const struct device *dev, uint32_t register_id,
-                   uint16_t *value, uint16_t len)
+                   uint8_t *value, uint16_t len)
 {
     struct mpl460a_data *drv_data = dev->data;
 
     int ret;
 
     // Send register_id, len and dummy
-    uint16_t tx_data[4] = {(uint16_t)(register_id >> 16),
-                           (uint16_t)(register_id & 0x0fff), len, 0x0000};
+    uint8_t tx_data[8];
+    sys_put_be16(register_id >> 16, tx_data);
+    sys_put_be16(register_id & 0xffff, tx_data + 2);
+    sys_put_be16(len, tx_data + 4);
+    sys_put_be16(0x0000, tx_data + 4);
 
     ret = fw_id_send(dev, PL460_G3_REG_INFO, tx_data, 8, 0, 0, true);
     if (ret < 0)

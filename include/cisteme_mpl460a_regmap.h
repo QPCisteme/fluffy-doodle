@@ -131,3 +131,34 @@ typedef struct __attribute__((packed))
 #define PL460_BAD_HEADER 0xFFFE
 #define PL460_TIMEOUT 0xFFFD
 #define PL460_UNEXPECTED_EVENT 0xFFFB
+
+typedef struct __attribute__((packed))
+{
+    uint32_t ul_rx_time;
+    uint32_t ul_frame_duration;
+    uint16_t us_rssi;
+    uint16_t us_data_len;
+    uint8_t uc_zct_diff;
+    uint8_t uc_rs_corrected_errors;
+    uint8_t uc_mod_type;
+    uint8_t uc_mod_scheme;
+    uint32_t ul_agc_factor;
+    uint16_t us_agc_fine;
+    int16_t ss_agc_offset_meas;
+    uint8_t uc_agc_active;
+    uint8_t uc_agc_pga_value;
+    int16_t ss_snr_fch;
+    int16_t ss_snr_pay;
+    uint16_t us_payload_corrupted_carriers;
+    uint16_t us_payload_noised_symbols;
+    uint8_t uc_payload_snr_worst_carrier;
+    uint8_t uc_payload_snr_worst_symbol;
+    uint8_t uc_payload_snr_impulsive;
+    uint8_t uc_payload_snr_band;
+    uint8_t uc_payload_snr_background;
+    uint8_t uc_lqi;
+    uint8_t uc_delimiter_type;
+    uint8_t uc_crc_ok;
+    uint8_t puc_tone_map[3];
+    uint8_t puc_carrier_snr[72];
+} PL460_RX_PARAM;
