@@ -233,7 +233,7 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint8_t *tx,
     if (tx_size & 0x01)
         tx_size++;
 
-    if (rx_size & 0x01)
+    if (rx_size & 0x01 & (id != PL460_G3_RX_DATA))
         rx_size++;
 
     // Copy ID (BE)
