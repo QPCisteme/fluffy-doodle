@@ -413,6 +413,12 @@ static void wq_get_event(struct k_work *work)
         return;
     }
 
+    if (ret & PL460_RX_PARAM_FLAG)
+    {
+        wq_rx_params(data->dev);
+        return;
+    }
+
     if (ret & PL460_RX_DATA_FLAG)
     {
         wq_rx_data(data->dev);
@@ -422,12 +428,6 @@ static void wq_get_event(struct k_work *work)
     if (ret & PL460_REG_DATA_FLAG)
     {
         k_sem_give(&data->isr_sem);
-        return;
-    }
-
-    if (ret & PL460_RX_PARAM_FLAG)
-    {
-        wq_rx_params(data->dev);
         return;
     }
 }
