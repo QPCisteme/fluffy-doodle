@@ -350,9 +350,11 @@ static void wq_rx_params(const struct device *dev)
 {
     struct mpl460a_data *drv_data = dev->data;
 
+    int ret;
+
     uint8_t rx_params[118];
 
-    fw_id_send(dev, PL460_G3_RX_PARAM, 0, 0, rx_params, 118, false);
+    ret = fw_id_send(dev, PL460_G3_RX_PARAM, 0, 0, rx_params, 118, false);
     if (ret < 0)
         return;
 
@@ -364,32 +366,32 @@ static void wq_rx_params(const struct device *dev)
         (sys_get_be16(rx_params + 6) << 16) | (sys_get_be16(rx_params + 4));
     params.us_rssi = sys_get_be16(rx_params + 8);
     params.us_data_len = sys_get_be16(rx_params + 10);
-    params.uc_zct_diff = rx_params + 12;
-    params.uc_rs_corrected_error = rx_params + 13;
-    params.uc_mod_type = rx_params + 14;
-    params.uc_mod_scheme = rx_params + 15;
+    params.uc_zct_diff = &(rx_params + 12);
+    params.uc_rs_corrected_errors = &(rx_params + 13);
+    params.uc_mod_type = &(rx_params + 14);
+    params.uc_mod_scheme = &(rx_params + 15);
     params.ul_agc_factor = sys_get_be16(rx_params + 16);
-    params.ul_agc_fine = sys_get_be16(rx_params + 18);
+    params.us_agc_fine = sys_get_be16(rx_params + 18);
     params.ss_agc_offset_meas = sys_get_be16(rx_params + 20);
-    params.uc_agc_active = rx_params + 22;
-    params.uc_agc_pga_value = rx_params + 23;
+    params.uc_agc_active = &(rx_params + 22);
+    params.uc_agc_pga_value = &(rx_params + 23);
     params.ss_snr_fch = sys_get_be16(rx_params + 24);
     params.ss_snr_pay = sys_get_be16(rx_params + 26);
     params.us_payload_corrupted_carriers = sys_get_be16(rx_params + 28);
     params.us_payload_noised_symbols = sys_get_be16(rx_params + 30);
-    params.uc_payload_snr_worst_carrier = rx_params + 32;
-    params.uc_payload_snr_worst_symbol = rx_params + 33;
-    params.uc_payload_snr_impulsive = rx_params + 34;
-    params.uc_payload_snr_band = rx_params + 35;
-    params.uc_payload_snr_background = rx_params + 36;
-    params.uc_lqi = rx_params + 37;
-    params.uc_delimiter_type = rx_params + 38;
-    params.uc_crc_ok = rx_params + 39;
-    memcpy(params.puc_tone_map, rx_params +, 3);
-    memcpy(params.puc_carrier_snr, rx_params +, 72);
+    params.uc_payload_snr_worst_carrier = &(rx_params + 32);
+    params.uc_payload_snr_worst_symbol = &(rx_params + 33);
+    params.uc_payload_snr_impulsive = &(rx_params + 34);
+    params.uc_payload_snr_band = &(rx_params + 35);
+    params.uc_payload_snr_background = &(rx_params + 36);
+    params.uc_lqi = &(rx_params + 37);
+    params.uc_delimiter_type = &(rx_params + 38);
+    params.uc_crc_ok = &(rx_params + 39);
+    memcpy(params.puc_tone_map, rx_params + 40, 3);
+    memcpy(params.puc_carrier_snr, rx_params + 43, 72);
 
-    drv_data->rx_cb(dev, drv_data->rx_data + 2,
-                    sys_get_le16((uint8_t *)drv_data->rx_data), &params);
+    drv_data->rx_cb(dev, drv_data->rx_data + 2, sys_get_le16(drv_data->rx_data),
+                    &params);
     return;
 }
 
