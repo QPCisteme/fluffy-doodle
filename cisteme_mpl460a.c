@@ -399,8 +399,7 @@ static void wq_get_event(struct k_work *work)
 
     uint32_t timer_ref, event_info;
     int ret = fw_get_events(data->dev, &timer_ref, &event_info);
-    if (ret < 0)
-        return;
+    printk("IRQ Events : %.4x", ret);
 
     data->irq_events.flag = (uint16_t)ret;
     data->irq_events.tref = timer_ref;
