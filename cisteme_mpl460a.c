@@ -307,9 +307,10 @@ void extin_IRQ(const struct device *dev, struct gpio_callback *cb,
     k_work_submit(&data->get_event_work);
 }
 
-static void wq_tx_cfm(const struct device *dev)
+static void wq_tx_cfm(struct k_work *work)
 {
-    struct mpl460a_data *drv_data = dev->data;
+    struct mpl460a_data *drv_data =
+        CONTAINER_OF(work, struct mpl460a_data, tx_cfm_work);
 
     uint8_t rx_cfm[10];
     uint32_t t_time, rms;
@@ -330,9 +331,10 @@ static void wq_tx_cfm(const struct device *dev)
     return;
 }
 
-static void wq_rx_data(const struct device *dev)
+static void wq_rx_data(struct k_work *work)
 {
-    struct mpl460a_data *drv_data = dev->data;
+    struct mpl460a_data *drv_data =
+        CONTAINER_OF(work, struct mpl460a_data, rx_data_work);
 
     drv_data->rx_len = (drv_data->irq_events.info & 0x000000FF);
 
@@ -342,9 +344,10 @@ static void wq_rx_data(const struct device *dev)
     return;
 }
 
-static void wq_rx_params(const struct device *dev)
+static void wq_rx_param(struct k_work *work)
 {
-    struct mpl460a_data *drv_data = dev->data;
+    struct mpl460a_data *drv_data =
+        CONTAINER_OF(work, struct mpl460a_data, rx_param_work);
 
     int ret;
 
@@ -394,26 +397,26 @@ static void wq_rx_params(const struct device *dev)
 
 static void wq_get_event(struct k_work *work)
 {
-    struct mpl460a_data *data =
+    struct mpl460a_data *drv_data =
         CONTAINER_OF(work, struct mpl460a_data, get_event_work);
 
     uint32_t timer_ref, event_info;
-    int ret = fw_get_events(data->dev, &timer_ref, &event_info);
+    int ret = fw_get_events(drv_data->dev, &timer_ref, &event_info);
     if (ret < 0)
         return;
 
-    data->irq_events.flag = (uint16_t)ret;
-    data->irq_events.tref = timer_ref;
-    data->irq_events.info = event_info;
+    drv_data->irq_events.flag = (uint16_t)ret;
+    drv_data->irq_events.tref = timer_ref;
+    drv_data->irq_events.info = event_info;
 
     if (ret & PL460_TX_CFM_FLAG)
     {
-        wq_tx_cfm(data->dev);
+        k_work_submit(&data->tx_cfm_work);
     }
 
     if (ret & PL460_RX_DATA_FLAG)
     {
-        wq_rx_data(data->dev);
+        k_work_submit(&data->rx_data_work);
     }
 
     if (ret & PL460_REG_DATA_FLAG)
@@ -423,7 +426,7 @@ static void wq_get_event(struct k_work *work)
 
     if (ret & PL460_RX_PARAM_FLAG)
     {
-        wq_rx_params(data->dev);
+        k_work_submit(&data->rx_param_work);
     }
 }
 
@@ -759,6 +762,9 @@ static int mpl460a_init(const struct device *dev)
 
     k_sem_init(&drv_data->isr_sem, 0, 1);
     k_work_init(&drv_data->get_event_work, wq_get_event);
+    k_work_init(&drv_data->rx_param_work, wq_rx_param);
+    k_work_init(&drv_data->rx_data_work, wq_rx_data);
+    k_work_init(&drv_data->tx_cfm_work, wq_tx_cfm);
 
     gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
     gpio_init_callback(&drv_data->extin_cb_data, extin_IRQ,
