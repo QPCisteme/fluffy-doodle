@@ -444,7 +444,8 @@ static void wq_get_event(struct k_work *work)
         k_work_submit(&drv_data->rx_param_work);
     }
 
-    gpio_pin_interrupt_configure_dt(&drv_data->dev->config, GPIO_INT_DISABLE);
+    gpio_pin_interrupt_configure_dt(&drv_data->dev->config->extin,
+                                    GPIO_INT_DISABLE);
 }
 
 static int fw_send(const struct device *dev, uint8_t *data, uint8_t len,
