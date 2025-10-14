@@ -230,12 +230,16 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint8_t *tx,
     uint8_t tx_header[4];
     uint8_t rx_header[4];
 
-    uint8_t cmd_len = (MAX(tx_size, rx_size) + 1) >> 1;
+    if (tx_size & 0x01)
+        tx_size++;
+
+    if (rx_size & 0x01)
+        rx_size++;
 
     // Copy ID (BE)
     sys_put_be16(id, tx_header);
     // Copy length (BE)
-    sys_put_be16(cmd_len, tx_header + 2);
+    sys_put_be16(MAX(tx_size >> 1, rx_size >> 1), tx_header + 2);
 
     // Update R/W bit
     if (write)
@@ -335,6 +339,9 @@ static void wq_rx_data(const struct device *dev)
     int ret = fw_id_send(dev, PL460_G3_RX_DATA, 0, 0, drv_data->rx_data,
                          drv_data->rx_len, false);
 
+    drv_data->rx_cb(dev, drv_data->rx_data + 2, sys_get_le16(drv_data->rx_data),
+                    NULL);
+
     return;
 }
 
@@ -383,8 +390,6 @@ static void wq_rx_params(const struct device *dev)
     memcpy(params.puc_tone_map, rx_params + 42, 3);
     memcpy(params.puc_carrier_snr, rx_params + 45, 72);
 
-    drv_data->rx_cb(dev, drv_data->rx_data + 2, sys_get_le16(drv_data->rx_data),
-                    &params);
     return;
 }
 
@@ -395,6 +400,7 @@ static void wq_get_event(struct k_work *work)
 
     uint32_t timer_ref, event_info;
     int ret = fw_get_events(data->dev, &timer_ref, &event_info);
+    printk("IRQ Events : %.4x", ret);
 
     data->irq_events.flag = (uint16_t)ret;
     data->irq_events.tref = timer_ref;
