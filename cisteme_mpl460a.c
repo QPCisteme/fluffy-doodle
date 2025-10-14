@@ -260,15 +260,15 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint8_t *tx,
     if (ret < 0)
         return ret;
 
-    printk("TX : ");
-    for (int i = 0; i < tx_size; i++)
-        printk("%.2x ", tx[i]);
-    printk("\r\n");
+    // printk("TX : ");
+    // for (int i = 0; i < tx_size; i++)
+    //     printk("%.2x ", tx[i]);
+    // printk("\r\n");
 
-    printk("RX : ");
-    for (int i = 0; i < rx_size; i++)
-        printk("%.2x ", rx[i]);
-    printk("\r\n");
+    // printk("RX : ");
+    // for (int i = 0; i < rx_size; i++)
+    //     printk("%.2x ", rx[i]);
+    // printk("\r\n");
 
     // Check FW header
     uint16_t header = sys_get_be16(&rx_header[0]);
@@ -342,6 +342,9 @@ static void wq_rx_params(const struct device *dev)
     if (ret < 0)
         return;
 
+    if (drv_data->rx_len == 0)
+        return;
+
     PL460_RX_PARAM params;
 
     params.ul_rx_time =
@@ -385,7 +388,7 @@ static void wq_rx_data(const struct device *dev)
 {
     struct mpl460a_data *drv_data = dev->data;
 
-    drv_data->rx_len = (drv_data->irq_events.info & 0x000000FE);
+    drv_data->rx_len = (drv_data->irq_events.info & 0x000000FF);
 
     int ret = fw_id_send(dev, PL460_G3_RX_DATA, 0, 0, drv_data->rx_data,
                          drv_data->rx_len, false);
@@ -395,6 +398,8 @@ static void wq_rx_data(const struct device *dev)
         wq_rx_params(dev);
         return;
     }
+
+    drv_data->rx_len = 0;
 
     return;
 }
@@ -417,12 +422,6 @@ static void wq_get_event(struct k_work *work)
         return;
     }
 
-    if (ret & PL460_RX_PARAM_FLAG)
-    {
-        wq_rx_params(data->dev);
-        return;
-    }
-
     if (ret & PL460_RX_DATA_FLAG)
     {
         wq_rx_data(data->dev);
@@ -432,6 +431,12 @@ static void wq_get_event(struct k_work *work)
     if (ret & PL460_REG_DATA_FLAG)
     {
         k_sem_give(&data->isr_sem);
+        return;
+    }
+
+    if (ret & PL460_RX_PARAM_FLAG)
+    {
+        wq_rx_params(data->dev);
         return;
     }
 }
