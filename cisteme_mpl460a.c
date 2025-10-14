@@ -444,7 +444,7 @@ static void wq_get_event(struct k_work *work)
         k_work_submit(&drv_data->rx_param_work);
     }
 
-    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLE);
+    gpio_pin_interrupt_configure_dt(&drv_data->dev->config, GPIO_INT_DISABLE);
 }
 
 static int fw_send(const struct device *dev, uint8_t *data, uint8_t len,
@@ -517,8 +517,6 @@ static int set_pib(const struct device *dev, uint32_t register_id,
         tx_data[7 + i] = value[i];
     }
 
-    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
-
     ret = fw_id_send(dev, PL460_G3_REG_INFO, tx_data, 6 + size, 0, 0, true);
     if (ret < 0)
         return ret;
@@ -540,6 +538,8 @@ static int get_pib(const struct device *dev, uint32_t register_id,
     sys_put_le16(register_id & 0x0fff, tx_data + 2);
     sys_put_le16(len, tx_data + 4);
     sys_put_le16(0x0000, tx_data + 4);
+
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
 
     ret = fw_id_send(dev, PL460_G3_REG_INFO, tx_data, 8, 0, 0, true);
     if (ret < 0)
