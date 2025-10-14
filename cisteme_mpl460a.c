@@ -339,7 +339,11 @@ static void wq_rx_data(const struct device *dev)
     int ret = fw_id_send(dev, PL460_G3_RX_DATA, 0, 0, drv_data->rx_data,
                          drv_data->rx_len, false);
 
-    printk("RX Data events ; %.4x\r\n", ret);
+    if (ret & PL460_RX_PARAM_FLAG)
+    {
+        wq_rx_params(data->dev);
+        return;
+    }
 
     return;
 }
