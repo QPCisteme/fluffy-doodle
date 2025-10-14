@@ -444,7 +444,7 @@ static void wq_get_event(struct k_work *work)
         k_work_submit(&drv_data->rx_param_work);
     }
 
-    gpio_pin_interrupt_configure_dt(&drv_data->dev->config->extin,
+    gpio_pin_interrupt_configure_dt(&(drv_data->dev->config->extin),
                                     GPIO_INT_DISABLE);
 }
 
