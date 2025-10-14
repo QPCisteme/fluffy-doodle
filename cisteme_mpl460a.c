@@ -318,7 +318,10 @@ static void wq_tx_cfm(struct k_work *work)
     int ret =
         fw_id_send(drv_data->dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 10, false);
     if (ret < 0)
+    {
+        printk("Err : %d\r\n", ret);
         return;
+    }
 
     rms = (sys_get_be16(rx_cfm + 2) << 16) | (sys_get_be16(rx_cfm));
 
@@ -339,9 +342,13 @@ static void wq_rx_data(struct k_work *work)
 
     drv_data->rx_len = (drv_data->irq_events.info & 0x000000FF);
 
-    fw_id_send(drv_data->dev, PL460_G3_RX_DATA, 0, 0, drv_data->rx_data,
-               drv_data->rx_len, false);
-
+    int ret = fw_id_send(drv_data->dev, PL460_G3_RX_DATA, 0, 0,
+                         drv_data->rx_data, drv_data->rx_len, false);
+    if (ret < 0)
+    {
+        printk("Err : %d\r\n", ret);
+        return;
+    }
     return;
 }
 
@@ -357,7 +364,10 @@ static void wq_rx_param(struct k_work *work)
     ret = fw_id_send(drv_data->dev, PL460_G3_RX_PARAM, 0, 0, rx_params, 117,
                      false);
     if (ret < 0)
+    {
+        printk("Err : %d\r\n", ret);
         return;
+    }
 
     PL460_RX_PARAM params;
 
@@ -405,7 +415,10 @@ static void wq_get_event(struct k_work *work)
     uint32_t timer_ref, event_info;
     int ret = fw_get_events(drv_data->dev, &timer_ref, &event_info);
     if (ret < 0)
+    {
+        printk("Err : %d\r\n", ret);
         return;
+    }
 
     drv_data->irq_events.flag = (uint16_t)ret;
     drv_data->irq_events.tref = timer_ref;
