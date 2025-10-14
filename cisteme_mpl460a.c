@@ -350,6 +350,7 @@ static void wq_rx_params(const struct device *dev)
 {
     struct mpl460a_data *drv_data = dev->data;
 
+    printk("TP6\r\n");
     int ret;
 
     uint8_t rx_params[117];
@@ -357,6 +358,8 @@ static void wq_rx_params(const struct device *dev)
     ret = fw_id_send(dev, PL460_G3_RX_PARAM, 0, 0, rx_params, 117, false);
     if (ret < 0)
         return;
+
+    printk("TP7\r\n");
 
     PL460_RX_PARAM params;
 
@@ -391,8 +394,11 @@ static void wq_rx_params(const struct device *dev)
     memcpy(params.puc_tone_map, rx_params + 42, 3);
     memcpy(params.puc_carrier_snr, rx_params + 45, 72);
 
+    printk("TP8\r\n");
     drv_data->rx_cb(dev, drv_data->rx_data + 2, sys_get_le16(drv_data->rx_data),
                     &params);
+
+    printk("TP9\r\n");
 
     return;
 }
@@ -417,16 +423,19 @@ static void wq_get_event(struct k_work *work)
     if (ret & PL460_RX_DATA_FLAG)
     {
         wq_rx_data(data->dev);
+        printk("TP4\r\n");
     }
 
     if (ret & PL460_REG_DATA_FLAG)
     {
         k_sem_give(&data->isr_sem);
+        printk("TP5\r\n");
     }
 
     if (ret & PL460_RX_PARAM_FLAG)
     {
         wq_rx_params(data->dev);
+        printk("TP10\r\n");
     }
 }
 
