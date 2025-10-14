@@ -330,24 +330,6 @@ static void wq_tx_cfm(const struct device *dev)
     return;
 }
 
-static void wq_rx_data(const struct device *dev)
-{
-    struct mpl460a_data *drv_data = dev->data;
-
-    drv_data->rx_len = (drv_data->irq_events.info & 0x000000FE);
-
-    int ret = fw_id_send(dev, PL460_G3_RX_DATA, 0, 0, drv_data->rx_data,
-                         drv_data->rx_len, false);
-
-    if (ret & PL460_RX_PARAM_FLAG)
-    {
-        wq_rx_params(data->dev);
-        return;
-    }
-
-    return;
-}
-
 static void wq_rx_params(const struct device *dev)
 {
     struct mpl460a_data *drv_data = dev->data;
@@ -395,6 +377,24 @@ static void wq_rx_params(const struct device *dev)
 
     drv_data->rx_cb(dev, drv_data->rx_data + 2, sys_get_le16(drv_data->rx_data),
                     &params);
+
+    return;
+}
+
+static void wq_rx_data(const struct device *dev)
+{
+    struct mpl460a_data *drv_data = dev->data;
+
+    drv_data->rx_len = (drv_data->irq_events.info & 0x000000FE);
+
+    int ret = fw_id_send(dev, PL460_G3_RX_DATA, 0, 0, drv_data->rx_data,
+                         drv_data->rx_len, false);
+
+    if (ret & PL460_RX_PARAM_FLAG)
+    {
+        wq_rx_params(data->dev);
+        return;
+    }
 
     return;
 }
