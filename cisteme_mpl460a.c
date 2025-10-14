@@ -315,7 +315,8 @@ static void wq_tx_cfm(struct k_work *work)
     uint8_t rx_cfm[10];
     uint32_t t_time, rms;
     uint8_t result;
-    int ret = fw_id_send(dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 10, false);
+    int ret =
+        fw_id_send(drv_data->dev, PL460_G3_TX_CONFIRM, 0, 0, rx_cfm, 10, false);
     if (ret < 0)
         return;
 
@@ -326,7 +327,7 @@ static void wq_tx_cfm(struct k_work *work)
     result = rx_cfm[9];
 
     if (drv_data->tx_cb != NULL)
-        drv_data->tx_cb(dev, t_time, rms, result);
+        drv_data->tx_cb(drv_data->dev, t_time, rms, result);
 
     return;
 }
@@ -338,8 +339,8 @@ static void wq_rx_data(struct k_work *work)
 
     drv_data->rx_len = (drv_data->irq_events.info & 0x000000FF);
 
-    int ret = fw_id_send(dev, PL460_G3_RX_DATA, 0, 0, drv_data->rx_data,
-                         drv_data->rx_len, false);
+    fw_id_send(drv_data->dev, PL460_G3_RX_DATA, 0, 0, drv_data->rx_data,
+               drv_data->rx_len, false);
 
     return;
 }
@@ -353,7 +354,8 @@ static void wq_rx_param(struct k_work *work)
 
     uint8_t rx_params[117];
 
-    ret = fw_id_send(dev, PL460_G3_RX_PARAM, 0, 0, rx_params, 117, false);
+    ret = fw_id_send(drv_data->dev, PL460_G3_RX_PARAM, 0, 0, rx_params, 117,
+                     false);
     if (ret < 0)
         return;
 
@@ -390,8 +392,8 @@ static void wq_rx_param(struct k_work *work)
     memcpy(params.puc_tone_map, rx_params + 42, 3);
     memcpy(params.puc_carrier_snr, rx_params + 45, 72);
 
-    drv_data->rx_cb(dev, drv_data->rx_data + 2, sys_get_le16(drv_data->rx_data),
-                    &params);
+    drv_data->rx_cb(drv_data->dev, drv_data->rx_data + 2,
+                    sys_get_le16(drv_data->rx_data), &params);
     return;
 }
 
@@ -411,22 +413,22 @@ static void wq_get_event(struct k_work *work)
 
     if (ret & PL460_TX_CFM_FLAG)
     {
-        k_work_submit(&data->tx_cfm_work);
+        k_work_submit(&drv_data->tx_cfm_work);
     }
 
     if (ret & PL460_RX_DATA_FLAG)
     {
-        k_work_submit(&data->rx_data_work);
+        k_work_submit(&drv_data->rx_data_work);
     }
 
     if (ret & PL460_REG_DATA_FLAG)
     {
-        k_sem_give(&data->isr_sem);
+        k_sem_give(&drv_data->isr_sem);
     }
 
     if (ret & PL460_RX_PARAM_FLAG)
     {
-        k_work_submit(&data->rx_param_work);
+        k_work_submit(&drv_data->rx_param_work);
     }
 }
 
