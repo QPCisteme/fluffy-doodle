@@ -169,7 +169,7 @@ static int set_nrst(const struct device *dev, uint8_t state)
     return 0;
 }
 
-static int set_en(const struct device *dev)
+static int set_en(const struct device *dev, uint8_t state)
 {
     const struct mpl460a_config *drv_config = dev->config;
 
