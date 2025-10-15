@@ -222,8 +222,6 @@ static int suspend(const struct device *dev)
 {
     const struct mpl460a_config *drv_config = dev->config;
 
-    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLE);
-
     gpio_pin_set_dt(&drv_config->nrst, 0);
 
     gpio_pin_set_dt(&drv_config->stby, 1);
@@ -234,8 +232,6 @@ static int suspend(const struct device *dev)
 static int resume(const struct device *dev)
 {
     const struct mpl460a_config *drv_config = dev->config;
-
-    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
 
     gpio_pin_set_dt(&drv_config->stby, 0);
 
@@ -439,6 +435,7 @@ static void wq_get_event(struct k_work *work)
 {
     struct mpl460a_data *data =
         CONTAINER_OF(work, struct mpl460a_data, get_event_work);
+    const struct mpl460a_config *drv_config = dev->config;
 
     uint32_t timer_ref, event_info;
     int ret = fw_get_events(data->dev, &timer_ref, &event_info);
@@ -470,6 +467,7 @@ static void wq_get_event(struct k_work *work)
         wq_rx_params(data->dev);
         return;
     }
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLED);
 }
 
 static int fw_send(const struct device *dev, uint8_t *data, uint8_t len,
@@ -485,6 +483,7 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len,
     int ret;
 
     gpio_pin_set_dt(&drv_config->txen, 1);
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
 
     // Send TX_PARAMS
     drv_data->params.dataLength = len + 2;
@@ -519,6 +518,7 @@ static int fw_receive(const struct device *dev, mpl460a_rx_cb_t callback)
         return -1;
 
     drv_data->rx_cb = callback;
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
 
     return 0;
 }
@@ -563,6 +563,8 @@ static int get_pib(const struct device *dev, uint32_t register_id,
     sys_put_le16(register_id & 0x0fff, tx_data + 2);
     sys_put_le16(len, tx_data + 4);
     sys_put_le16(0x0000, tx_data + 4);
+
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
 
     ret = fw_id_send(dev, PL460_G3_REG_INFO, tx_data, 8, 0, 0, true);
     if (ret < 0)
@@ -825,7 +827,7 @@ static int mpl460a_init(const struct device *dev)
     k_sem_init(&drv_data->isr_sem, 0, 1);
     k_work_init(&drv_data->get_event_work, wq_get_event);
 
-    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLE);
     gpio_init_callback(&drv_data->extin_cb_data, extin_IRQ,
                        BIT(drv_config->extin.pin));
     gpio_add_callback(drv_config->extin.port, &drv_data->extin_cb_data);
