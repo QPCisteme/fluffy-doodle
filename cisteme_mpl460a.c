@@ -222,6 +222,8 @@ static int suspend(const struct device *dev)
 {
     const struct mpl460a_config *drv_config = dev->config;
 
+    gpio_pin_set_dt(&drv_config->nrst, 0);
+
     gpio_pin_set_dt(&drv_config->stby, 1);
 
     return 0;
@@ -232,6 +234,10 @@ static int resume(const struct device *dev)
     const struct mpl460a_config *drv_config = dev->config;
 
     gpio_pin_set_dt(&drv_config->stby, 0);
+
+    gpio_pin_set_dt(&drv_config->nrst, 1);
+
+    k_usleep(700);
 
     boot_enable(dev);
 
