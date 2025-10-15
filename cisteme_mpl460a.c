@@ -472,7 +472,7 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len,
     memcpy(plc_tx + 2, data, len);
 
     // Send TX_DATA
-    ret = fw_id_send(dev, PL460_G3_TX_DATA, data, len + 2, 0, 0, true);
+    ret = fw_id_send(dev, PL460_G3_TX_DATA, plc_tx, len + 2, 0, 0, true);
 
     return ret;
 }
