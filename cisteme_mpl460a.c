@@ -435,7 +435,7 @@ static void wq_get_event(struct k_work *work)
 {
     struct mpl460a_data *data =
         CONTAINER_OF(work, struct mpl460a_data, get_event_work);
-    const struct mpl460a_config *drv_config = dev->config;
+    const struct mpl460a_config *drv_config = data->dev->config;
 
     uint32_t timer_ref, event_info;
     int ret = fw_get_events(data->dev, &timer_ref, &event_info);
@@ -467,7 +467,7 @@ static void wq_get_event(struct k_work *work)
         wq_rx_params(data->dev);
         return;
     }
-    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLED);
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLE);
 }
 
 static int fw_send(const struct device *dev, uint8_t *data, uint8_t len,
@@ -513,6 +513,7 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len,
 static int fw_receive(const struct device *dev, mpl460a_rx_cb_t callback)
 {
     struct mpl460a_data *drv_data = dev->data;
+    const struct mpl460a_config *drv_config = dev->config;
 
     if (callback == NULL)
         return -1;
@@ -554,6 +555,7 @@ static int get_pib(const struct device *dev, uint32_t register_id,
                    uint8_t *value, uint16_t len)
 {
     struct mpl460a_data *drv_data = dev->data;
+    const struct mpl460a_config *drv_config = dev->config;
 
     int ret;
 
