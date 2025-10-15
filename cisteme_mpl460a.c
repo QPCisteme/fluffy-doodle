@@ -178,34 +178,6 @@ static int set_en(const struct device *dev, uint8_t state)
     return 0;
 }
 
-static int suspend(const struct device *dev)
-{
-    const struct mpl460a_config *drv_config = dev->config;
-
-    gpio_pin_set_dt(&drv_config->nrst, 0);
-
-    k_msleep(100);
-
-    gpio_pin_set_dt(&drv_config->stby, 1);
-
-    return 0;
-}
-
-static int resume(const struct device *dev)
-{
-    const struct mpl460a_config *drv_config = dev->config;
-
-    gpio_pin_set_dt(&drv_config->stby, 0);
-
-    k_msleep(100);
-
-    gpio_pin_set_dt(&drv_config->nrst, 1);
-
-    k_msleep(100);
-
-    return 0;
-}
-
 static int boot_enable(const struct device *dev)
 {
 
@@ -223,6 +195,32 @@ static int boot_enable(const struct device *dev)
 
     mpl460a_conv.val = 0x01010001;
     boot_write(dev, PL460_MISCR, PL460_WR, mpl460a_conv.tab, 4);
+
+    return 0;
+}
+
+static int suspend(const struct device *dev)
+{
+    const struct mpl460a_config *drv_config = dev->config;
+
+    gpio_pin_set_dt(&drv_config->nrst, 0);
+
+    gpio_pin_set_dt(&drv_config->stby, 1);
+
+    return 0;
+}
+
+static int resume(const struct device *dev)
+{
+    const struct mpl460a_config *drv_config = dev->config;
+
+    gpio_pin_set_dt(&drv_config->stby, 0);
+
+    gpio_pin_set_dt(&drv_config->nrst, 1);
+
+    boot_enable(dev);
+
+    boot_disable(dev);
 
     return 0;
 }
