@@ -199,6 +199,25 @@ static int boot_enable(const struct device *dev)
     return 0;
 }
 
+static int boot_disable(const struct device *dev)
+{
+    int ret;
+    uint8_t tab[4];
+
+    // Clean CPUWAIT to start program
+    sys_put_le32(0x01010000, tab);
+    ret = boot_write(dev, PL460_MISCR, PL460_WR, tab, 4);
+    if (ret < 0)
+        return ret;
+
+    // Give MISO to M7-SPI
+    ret = boot_write(dev, 0, PL460_MISO_M7_NCLK, 0, 0);
+    if (ret < 0)
+        return ret;
+
+    return 0;
+}
+
 static int suspend(const struct device *dev)
 {
     const struct mpl460a_config *drv_config = dev->config;
@@ -221,25 +240,6 @@ static int resume(const struct device *dev)
     boot_enable(dev);
 
     boot_disable(dev);
-
-    return 0;
-}
-
-static int boot_disable(const struct device *dev)
-{
-    int ret;
-    uint8_t tab[4];
-
-    // Clean CPUWAIT to start program
-    sys_put_le32(0x01010000, tab);
-    ret = boot_write(dev, PL460_MISCR, PL460_WR, tab, 4);
-    if (ret < 0)
-        return ret;
-
-    // Give MISO to M7-SPI
-    ret = boot_write(dev, 0, PL460_MISO_M7_NCLK, 0, 0);
-    if (ret < 0)
-        return ret;
 
     return 0;
 }
