@@ -57,9 +57,6 @@ struct mpl460a_data
 {
     const struct device *dev;
 
-    uint8_t nrst_state;
-    uint8_t en_state;
-
     CENA_TX_PARAM params;
     PL460_EVENT_DATA irq_events;
 
@@ -88,6 +85,9 @@ __subsystem struct mpl460a_api
 
     mpl460a_set_cmd_t mpl460a_set_nrst;
     mpl460a_set_cmd_t mpl460a_set_en;
+
+    mpl460a_cmd_t mpl460a_suspend;
+    mpl460a_cmd_t mpl460a_resume;
 
     mpl460a_cmd_t mpl460a_boot_enable;
     mpl460a_cmd_t mpl460a_boot_disable;
@@ -202,6 +202,30 @@ static inline int z_impl_mpl460a_boot_enable(const struct device *dev)
         return -ENOSYS;
     }
     return api->mpl460a_boot_enable(dev);
+}
+
+__syscall int mpl460a_suspend(const struct device *dev);
+
+static inline int z_impl_mpl460a_suspend(const struct device *dev)
+{
+    const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
+    if (api->mpl460a_suspend == NULL)
+    {
+        return -ENOSYS;
+    }
+    return api->mpl460a_suspend(dev);
+}
+
+__syscall int mpl460a_resume(const struct device *dev);
+
+static inline int z_impl_mpl460a_resume(const struct device *dev)
+{
+    const struct mpl460a_api *api = (const struct mpl460a_api *)dev->api;
+    if (api->mpl460a_resume == NULL)
+    {
+        return -ENOSYS;
+    }
+    return api->mpl460a_resume(dev);
 }
 
 __syscall int mpl460a_get_events(const struct device *dev, uint32_t *timer_ref,

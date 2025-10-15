@@ -162,22 +162,40 @@ static int boot_check_fw(const struct device *dev, uint8_t *data, uint32_t size)
 
 static int set_nrst(const struct device *dev, uint8_t state)
 {
-    struct mpl460a_data *drv_data = dev->data;
     const struct mpl460a_config *drv_config = dev->config;
 
     gpio_pin_set_dt(&drv_config->nrst, state);
-    drv_data->nrst_state = state;
 
     return 0;
 }
 
-static int set_en(const struct device *dev, uint8_t state)
+static int set_en(const struct device *dev)
 {
-    struct mpl460a_data *drv_data = dev->data;
     const struct mpl460a_config *drv_config = dev->config;
 
     gpio_pin_set_dt(&drv_config->en, state);
-    drv_data->en_state = state;
+
+    return 0;
+}
+
+static int suspend(const struct device *dev)
+{
+    const struct mpl460a_config *drv_config = dev->config;
+
+    gpio_pin_set_dt(&drv_config->nrst, 0);
+
+    gpio_pin_set_dt(&drv_config->stby, 1);
+
+    return 0;
+}
+
+static int resume(const struct device *dev)
+{
+    const struct mpl460a_config *drv_config = dev->config;
+
+    gpio_pin_set_dt(&drv_config->stby, 0);
+
+    gpio_pin_set_dt(&drv_config->nrst, 1);
 
     return 0;
 }
@@ -704,6 +722,9 @@ static const struct mpl460a_api api = {
     .mpl460a_boot_enable = &boot_enable,
     .mpl460a_boot_disable = &boot_disable,
 
+    .mpl460a_suspend = &suspend,
+    .mpl460a_resume = &resume,
+
     .mpl460a_get_events = &fw_get_events,
     .mpl460a_send = &fw_send,
     .mpl460a_get_pib = &get_pib,
@@ -725,9 +746,6 @@ static int mpl460a_init(const struct device *dev)
 {
     struct mpl460a_data *drv_data = dev->data;
     const struct mpl460a_config *drv_config = dev->config;
-
-    drv_data->nrst_state = 0;
-    drv_data->en_state = 0;
 
     if (!gpio_is_ready_dt(&drv_config->nrst))
         return -1;
