@@ -445,7 +445,7 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len,
                    mpl460a_tx_cb_t callback)
 {
     // Limit packet length
-    if (len > 64)
+    if (len > 254)
         return -1;
 
     struct mpl460a_data *drv_data = dev->data;
@@ -456,20 +456,23 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len,
     drv_data->params.dataLength = len;
     drv_data->tx_cb = callback;
 
-    uint8_t tx_params[40];
+    uint8_t plc_tx[256];
     uint8_t *pSrc = (uint8_t *)&drv_data->params;
     for (int i = 0; i < 40; i += 2)
     {
-        tx_params[i] = pSrc[i + 1];
-        tx_params[i + 1] = pSrc[i];
+        plc_tx[i] = pSrc[i + 1];
+        plc_tx[i + 1] = pSrc[i];
     }
 
-    ret = fw_id_send(dev, PL460_G3_TX_PARAM, tx_params, 40, 0, 0, true);
+    ret = fw_id_send(dev, PL460_G3_TX_PARAM, plc_tx, 40, 0, 0, true);
     if (ret < 0)
         return ret;
 
+    sys_put_le16((uint16_t)len, plc_tx);
+    memcpy(plc_tx + 2, data, len);
+
     // Send TX_DATA
-    ret = fw_id_send(dev, PL460_G3_TX_DATA, data, len, 0, 0, true);
+    ret = fw_id_send(dev, PL460_G3_TX_DATA, data, len + 2, 0, 0, true);
 
     return ret;
 }
