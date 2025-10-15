@@ -222,6 +222,8 @@ static int suspend(const struct device *dev)
 {
     const struct mpl460a_config *drv_config = dev->config;
 
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_DISABLE);
+
     gpio_pin_set_dt(&drv_config->nrst, 0);
 
     gpio_pin_set_dt(&drv_config->stby, 1);
@@ -232,6 +234,8 @@ static int suspend(const struct device *dev)
 static int resume(const struct device *dev)
 {
     const struct mpl460a_config *drv_config = dev->config;
+
+    gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
 
     gpio_pin_set_dt(&drv_config->stby, 0);
 
@@ -284,15 +288,15 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint8_t *tx,
     if (ret < 0)
         return ret;
 
-    // printk("TX : ");
-    // for (int i = 0; i < tx_size; i++)
-    //     printk("%.2x ", tx[i]);
-    // printk("\r\n");
+    printk("TX : ");
+    for (int i = 0; i < tx_size; i++)
+        printk("%.2x ", tx[i]);
+    printk("\r\n");
 
-    // printk("RX : ");
-    // for (int i = 0; i < rx_size; i++)
-    //     printk("%.2x ", rx[i]);
-    // printk("\r\n");
+    printk("RX : ");
+    for (int i = 0; i < rx_size; i++)
+        printk("%.2x ", rx[i]);
+    printk("\r\n");
 
     // Check FW header
     uint16_t header = sys_get_be16(&rx_header[0]);
