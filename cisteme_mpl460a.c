@@ -184,6 +184,8 @@ static int suspend(const struct device *dev)
 
     gpio_pin_set_dt(&drv_config->nrst, 0);
 
+    k_msleep(100);
+
     gpio_pin_set_dt(&drv_config->stby, 1);
 
     return 0;
@@ -195,7 +197,11 @@ static int resume(const struct device *dev)
 
     gpio_pin_set_dt(&drv_config->stby, 0);
 
+    k_msleep(100);
+
     gpio_pin_set_dt(&drv_config->nrst, 1);
+
+    k_msleep(100);
 
     return 0;
 }
