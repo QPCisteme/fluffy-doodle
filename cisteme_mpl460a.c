@@ -543,10 +543,24 @@ static int get_pib(const struct device *dev, uint32_t register_id,
         return PL460_UNEXPECTED_EVENT;
 
     // Read PIB value
-    ret = fw_id_send(dev, PL460_G3_REG_INFO, 0, 0, value,
-                     drv_data->irq_events.info >> 16, false);
-    if (ret < 0)
-        return ret;
+    uint8_t pib_len = drv_data->irq_events.info >> 16;
+
+    // If single byte reading, read 2 then return last one
+    if (pib_len == 1)
+    {
+        uint8_t pib_temp[2];
+        ret = fw_id_send(dev, PL460_G3_REG_INFO, 0, 0, pib_temp, 1, false);
+        if (ret < 0)
+            return ret;
+        *value = pib_temp[1];
+    }
+    // Else fill directly the buffer
+    else
+    {
+        ret = fw_id_send(dev, PL460_G3_REG_INFO, 0, 0, value, pib_len, false);
+        if (ret < 0)
+            return ret;
+    }
 
     return ret;
 }
