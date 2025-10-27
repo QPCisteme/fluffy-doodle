@@ -336,7 +336,7 @@ static void wq_tx_cfm(const struct device *dev)
     const struct mpl460a_config *drv_config = dev->config;
     struct mpl460a_data *drv_data = dev->data;
 
-    gpio_pin_set_dt(&drv_config->txen, 0);
+    // gpio_pin_set_dt(&drv_config->txen, 0);
 
     uint8_t rx_cfm[10];
     uint32_t t_time, rms;
@@ -482,7 +482,7 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len,
 
     int ret;
 
-    gpio_pin_set_dt(&drv_config->txen, 1);
+    // gpio_pin_set_dt(&drv_config->txen, 1);
     gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
 
     // Send TX_PARAMS
@@ -799,7 +799,7 @@ static int mpl460a_init(const struct device *dev)
     if (ret < 0)
         return ret;
 
-    ret = gpio_pin_configure_dt(&drv_config->txen, GPIO_OUTPUT_INACTIVE);
+    ret = gpio_pin_configure_dt(&drv_config->txen, GPIO_OUTPUT_ACTIVE);
     if (ret < 0)
         return ret;
 
