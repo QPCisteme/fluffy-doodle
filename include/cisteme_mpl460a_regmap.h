@@ -45,9 +45,11 @@
 
 /* Flags =====================================================================*/
 #define PL460_TX_CFM_FLAG 0x0001
+#define PL460_RX_DATA_FLAG 0x0002
+#define PL460_REG_DATA_FLAG 0x0008
+#define PL460_RX_PARAM_FLAG 0x0010
 
-/* TX_PARAM Structure
- * =============================================================*/
+/* TX_PARAMETERS =============================================================*/
 
 typedef struct __attribute__((packed))
 {
@@ -74,3 +76,89 @@ typedef struct __attribute__((packed))
     // Can be NO_RES
     uint8_t delimiterType;
 } CENA_TX_PARAM;
+
+typedef enum
+{
+    PL460_BAND_CENA = 0x00,
+    PL460_BAND_CENB = 0x01,
+    PL460_BAND_ARIB = 0x02,
+    PL460_BAND_FCC = 0x04
+
+} PL460_BAND;
+
+typedef enum
+{
+    PL460_TX_MODE_ABSOLUTE = 0x00,
+    PL460_TX_MODE_FORCED = 0x01,
+    PL460_TX_MODE_RELATIVE = 0x02,
+    PL460_TX_MODE_SYNCP = 0x04,
+    PL460_TX_MODE_SYM_CONT = 0x08,
+    PL460_TX_MODE_CANCEL = 0x10
+} PL460_TX_MODE;
+
+typedef enum
+{
+    MOD_TYPE_BPSK = 0,
+    MOD_TYPE_QPSK = 1,
+    MOD_TYPE_8PSK = 2,
+    MOD_TYPE_BPSK_ROBO = 4,
+} PL460_MOD_TYPE;
+
+typedef enum
+{
+    MOD_SCHEME_DIFFERENTIAL = 0,
+    MOD_SCHEME_COHERENT = 1,
+} PL460_MOD_SCHEME;
+
+typedef enum
+{
+    DT_SOF_NO_RESP = 0,
+    DT_SOF_RESP = 1,
+    DT_ACK = 2,
+    DT_NACK = 3,
+} PL460_DEL_TYPE;
+
+/* GET_EVENT structure =======================================================*/
+typedef struct __attribute__((packed))
+{
+    uint16_t flag;
+    uint32_t tref;
+    uint32_t info;
+} PL460_EVENT_DATA;
+
+/* ERROR CODES ===============================================================*/
+
+#define PL460_BAD_HEADER 0xFFFE
+#define PL460_TIMEOUT 0xFFFD
+#define PL460_UNEXPECTED_EVENT 0xFFFB
+
+typedef struct __attribute__((packed))
+{
+    uint32_t ul_rx_time;
+    uint32_t ul_frame_duration;
+    uint16_t us_rssi;
+    uint16_t us_data_len;
+    uint8_t uc_zct_diff;
+    uint8_t uc_rs_corrected_errors;
+    uint8_t uc_mod_type;
+    uint8_t uc_mod_scheme;
+    uint32_t ul_agc_factor;
+    uint16_t us_agc_fine;
+    int16_t ss_agc_offset_meas;
+    uint8_t uc_agc_active;
+    uint8_t uc_agc_pga_value;
+    int16_t ss_snr_fch;
+    int16_t ss_snr_pay;
+    uint16_t us_payload_corrupted_carriers;
+    uint16_t us_payload_noised_symbols;
+    uint8_t uc_payload_snr_worst_carrier;
+    uint8_t uc_payload_snr_worst_symbol;
+    uint8_t uc_payload_snr_impulsive;
+    uint8_t uc_payload_snr_band;
+    uint8_t uc_payload_snr_background;
+    uint8_t uc_lqi;
+    uint8_t uc_delimiter_type;
+    uint8_t uc_crc_ok;
+    uint8_t puc_tone_map[3];
+    uint8_t puc_carrier_snr[72];
+} PL460_RX_PARAM;
