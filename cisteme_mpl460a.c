@@ -812,7 +812,7 @@ static int mpl460a_init(const struct device *dev)
     memset(drv_data->params.preemphasis, 0, 24);
     drv_data->params.toneMap[0] = 0x3F;
     memset(drv_data->params.toneMap + 1, 0, 2);
-    drv_data->params.mode = 3;
+    drv_data->params.mode = 2;
     drv_data->params.attenuation = 0;
     drv_data->params.modType = 0;
     drv_data->params.modScheme = 0;
