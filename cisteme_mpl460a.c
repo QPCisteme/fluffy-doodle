@@ -486,7 +486,7 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len,
     gpio_pin_interrupt_configure_dt(&drv_config->extin, GPIO_INT_EDGE_FALLING);
 
     // Send TX_PARAMS
-    drv_data->params.dataLength = len + 2;
+    drv_data->params.dataLength = (len & 0x01 ? len + 3 : len + 2);
     drv_data->tx_cb = callback;
 
     uint8_t plc_tx[256];
@@ -504,8 +504,13 @@ static int fw_send(const struct device *dev, uint8_t *data, uint8_t len,
     sys_put_le16((uint16_t)len, plc_tx);
     memcpy(plc_tx + 2, data, len);
 
+    // Fill last 16-bit word
+    if (len & 0x01)
+        plc_tx[len + 3] = 0x00;
+
     // Send TX_DATA
-    ret = fw_id_send(dev, PL460_G3_TX_DATA, plc_tx, len + 2, 0, 0, true);
+    ret = fw_id_send(dev, PL460_G3_TX_DATA, plc_tx, drv_data->params.dataLength,
+                     0, 0, true);
 
     return ret;
 }
