@@ -286,8 +286,8 @@ static int fw_id_send(const struct device *dev, uint16_t id, uint8_t *tx,
 
     // Check FW header
     uint16_t header = sys_get_be16(&rx_header[0]);
-    if (header != PL460_FW_HEADER)
-        return -2;
+    // if (header != PL460_FW_HEADER)
+    //     return -2;
 
     // Return events (LE)
     int events = sys_get_be16(&rx_header[2]);
