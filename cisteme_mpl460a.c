@@ -205,7 +205,8 @@ static int boot_disable(const struct device *dev)
     uint8_t tab[4];
 
     // Clean CPUWAIT to start program
-    sys_put_le32(0x01010000, tab);
+    // sys_put_le32(0x01010000, tab);
+    sys_put_le32(0x00000000, tab);
     ret = boot_write(dev, PL460_MISCR, PL460_WR, tab, 4);
     if (ret < 0)
         return ret;
@@ -213,7 +214,7 @@ static int boot_disable(const struct device *dev)
     k_msleep(100);
 
     // Give MISO to M7-SPIf
-    ret = boot_write(dev, 0, PL460_MISO_M7, 0, 0);
+    ret = boot_write(dev, 0, PL460_MISO_M7_NCLK, 0, 0);
     if (ret < 0)
         return ret;
 
