@@ -147,6 +147,7 @@ static int boot_check_fw(const struct device *dev, uint8_t *data, uint32_t size)
 
         for (int i = 0; i < pkt_size; i++)
         {
+            printk(" %.2x", pkt_data[i]);
             if (pkt_data[i] != data[read_addr + i])
             {
                 err++;
@@ -212,7 +213,7 @@ static int boot_disable(const struct device *dev)
 
     k_msleep(100);
 
-    // Give MISO to M7-SPI
+    // Give MISO to M7-SPIf
     ret = boot_write(dev, 0, PL460_MISO_M7_NCLK, 0, 0);
     if (ret < 0)
         return ret;
