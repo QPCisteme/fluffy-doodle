@@ -43,15 +43,15 @@ static int boot_write(const struct device *dev, uint32_t addr, uint16_t cmd,
         return ret;
     }
 
-    printk("TX : ");
-    for (int i = 0; i < size + 6; i++)
-        printk("%.2x ", tx_full[i]);
-    printk("\r\n");
+    // printk("TX : ");
+    // for (int i = 0; i < size + 6; i++)
+    //     printk("%.2x ", tx_full[i]);
+    // printk("\r\n");
 
-    printk("RX : ");
-    for (int i = 0; i < 4; i++)
-        printk("%.2x ", rx_data[i]);
-    printk("\r\n");
+    // printk("RX : ");
+    // for (int i = 0; i < 4; i++)
+    //     printk("%.2x ", rx_data[i]);
+    // printk("\r\n");
 
     return 0;
 }
@@ -81,15 +81,15 @@ static int boot_read(const struct device *dev, uint32_t addr, uint16_t cmd,
     }
     memcpy(data, rx_data + 6, size);
 
-    printk("TX : ");
-    for (int i = 0; i < 6; i++)
-        printk("%.2x ", addr_cmd[i]);
-    printk("\r\n");
+    // printk("TX : ");
+    // for (int i = 0; i < 6; i++)
+    //     printk("%.2x ", addr_cmd[i]);
+    // printk("\r\n");
 
-    printk("RX : ");
-    for (int i = 0; i < size + 6; i++)
-        printk("%.2x ", rx_data[i]);
-    printk("\r\n");
+    // printk("RX : ");
+    // for (int i = 0; i < size + 6; i++)
+    //     printk("%.2x ", rx_data[i]);
+    // printk("\r\n");
 
     return 0;
 }
