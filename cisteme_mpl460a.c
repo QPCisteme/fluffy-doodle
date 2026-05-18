@@ -178,7 +178,7 @@ static int boot_write_fw(const struct device *dev, uint8_t *data, uint32_t size)
         {
             return ret;
         }
-        write_addr += pkt_size;
+        write_addr += pkt_size / 4;
         max_addr -= pkt_size;
     }
 
@@ -212,7 +212,7 @@ static int boot_check_fw(const struct device *dev, uint8_t *data, uint32_t size)
             }
         }
 
-        read_addr += pkt_size;
+        read_addr += pkt_size / 4;
         max_addr -= pkt_size;
     }
 
