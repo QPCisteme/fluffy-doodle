@@ -161,24 +161,23 @@ static int boot_wait_wip(const struct device *dev)
 static int boot_write_fw(const struct device *dev, uint8_t *data, uint32_t size)
 {
     int ret;
-    uint32_t write_addr = 0, max_addr = size;
+    uint32_t byte_addr = 0, max_addr = size;
     uint8_t pkt_size;
 
     while (max_addr > 0)
     {
         pkt_size = (max_addr > 252 ? 252 : max_addr);
 
-        ret = boot_write(dev, write_addr, PL460_MULT_WR, &data[write_addr],
+        ret = boot_write(dev, byte_addr / 4, PL460_MULT_WR, &data[byte_addr],
                          pkt_size);
         if (ret < 0)
             return ret;
 
         ret = boot_wait_wip(dev);
         if (ret < 0)
-        {
             return ret;
-        }
-        write_addr += pkt_size / 4;
+
+        byte_addr += pkt_size;
         max_addr -= pkt_size;
     }
 
@@ -188,7 +187,7 @@ static int boot_write_fw(const struct device *dev, uint8_t *data, uint32_t size)
 static int boot_check_fw(const struct device *dev, uint8_t *data, uint32_t size)
 {
     int ret, err = 0;
-    uint32_t read_addr = 0, max_addr = size;
+    uint32_t byte_addr = 0, max_addr = size;
     uint8_t pkt_size;
     uint8_t pkt_data[252];
 
@@ -196,7 +195,7 @@ static int boot_check_fw(const struct device *dev, uint8_t *data, uint32_t size)
     {
         pkt_size = (max_addr > 252 ? 252 : max_addr);
 
-        ret = boot_read(dev, read_addr, PL460_MULT_RD, pkt_data, pkt_size);
+        ret = boot_read(dev, byte_addr / 4, PL460_MULT_RD, pkt_data, pkt_size);
         if (ret < 0)
             return ret;
 
@@ -206,13 +205,11 @@ static int boot_check_fw(const struct device *dev, uint8_t *data, uint32_t size)
 
         for (int i = 0; i < pkt_size; i++)
         {
-            if (pkt_data[i] != data[read_addr + i])
-            {
+            if (pkt_data[i] != data[byte_addr + i])
                 err++;
-            }
         }
 
-        read_addr += pkt_size / 4;
+        byte_addr += pkt_size;
         max_addr -= pkt_size;
     }
 
