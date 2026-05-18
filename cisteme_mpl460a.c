@@ -168,7 +168,7 @@ static int boot_write_fw(const struct device *dev, uint8_t *data, uint32_t size)
     {
         pkt_size = (max_addr > 252 ? 252 : max_addr);
 
-        ret = boot_write(dev, byte_addr, PL460_MULT_WR, &data[byte_addr],
+        ret = boot_write(dev, byte_addr / 4, PL460_MULT_WR, &data[byte_addr],
                          pkt_size);
         if (ret < 0)
             return ret;
@@ -195,7 +195,7 @@ static int boot_check_fw(const struct device *dev, uint8_t *data, uint32_t size)
     {
         pkt_size = (max_addr > 252 ? 252 : max_addr);
 
-        ret = boot_read(dev, byte_addr, PL460_MULT_RD, pkt_data, pkt_size);
+        ret = boot_read(dev, byte_addr / 4, PL460_MULT_RD, pkt_data, pkt_size);
         if (ret < 0)
             return ret;
 
