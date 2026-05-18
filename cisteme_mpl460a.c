@@ -151,7 +151,7 @@ static int boot_wait_wip(const struct device *dev)
         // Timeout conditions
         if (timeout-- == 0)
         {
-            return -= ;
+            return -116;
         }
     } while (rx_data[0] != 0);
 
