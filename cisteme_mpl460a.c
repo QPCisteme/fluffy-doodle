@@ -22,15 +22,34 @@ static int boot_write(const struct device *dev, uint32_t addr, uint16_t cmd,
                            (addr >> 16) & 0xFF, (addr >> 24) & 0xFF,
                            (cmd) & 0xFF,        (cmd >> 8) & 0xFF};
 
-    uint8_t tx_full[6 + size];
+    // Blocks of 32 bits
+    uint8_t word_number = size >> 2;
+    if (size % 4 != 0)
+        word_number++;
+
+    uint8_t tx_full[6 + word_number * 4];
+    memset(tx_full, 0, sizeof(tx_full));
     memcpy(tx_full, addr_cmd, 6);
 
-    if (size > 0)
-        memcpy(tx_full + 6, data, size);
+    uint8_t *pDest = &tx_full[6];
+    for (int i = 0; i < word_number; i++)
+    {
+        // Lire octet par octet avec vérification de bounds
+        uint8_t b0 = (4 * i + 0 < size) ? data[4 * i + 0] : 0x00;
+        uint8_t b1 = (4 * i + 1 < size) ? data[4 * i + 1] : 0x00;
+        uint8_t b2 = (4 * i + 2 < size) ? data[4 * i + 2] : 0x00;
+        uint8_t b3 = (4 * i + 3 < size) ? data[4 * i + 3] : 0x00;
+
+        // Inversion Little Endian word 32 bits
+        pDest[4 * i + 0] = b3;
+        pDest[4 * i + 1] = b2;
+        pDest[4 * i + 2] = b1;
+        pDest[4 * i + 3] = b0;
+    }
 
     uint8_t rx_data[4];
 
-    struct spi_buf tx_spi_buf = {.buf = tx_full, .len = size + 6};
+    struct spi_buf tx_spi_buf = {.buf = tx_full, .len = 4 * word_number + 6};
     struct spi_buf_set tx_spi_buf_set = {.buffers = &tx_spi_buf, .count = 1};
 
     struct spi_buf rx_spi_bufs = {.buf = rx_data, .len = 4};
@@ -65,12 +84,16 @@ static int boot_read(const struct device *dev, uint32_t addr, uint16_t cmd,
                            (addr >> 16) & 0xFF, (addr >> 24) & 0xFF,
                            (cmd) & 0xFF,        (cmd >> 8) & 0xFF};
 
-    uint8_t rx_data[size + 6];
+    uint8_t word_number = size >> 2;
+    if (size % 4 != 0)
+        word_number++;
+
+    uint8_t rx_data[6 + word_number * 4];
 
     struct spi_buf tx_spi_buf = {.buf = addr_cmd, .len = 6};
     struct spi_buf_set tx_spi_buf_set = {.buffers = &tx_spi_buf, .count = 1};
 
-    struct spi_buf rx_spi_bufs = {.buf = rx_data, .len = size + 6};
+    struct spi_buf rx_spi_bufs = {.buf = rx_data, .len = 6 + word_number * 4};
     struct spi_buf_set rx_spi_buf_set = {.buffers = &rx_spi_bufs, .count = 1};
 
     int ret;
@@ -79,7 +102,23 @@ static int boot_read(const struct device *dev, uint32_t addr, uint16_t cmd,
     {
         return ret;
     }
-    memcpy(data, rx_data + 6, size);
+
+    for (int i = 0; i < word_number; i++)
+    {
+        uint8_t b0 = (4 * i + 0 < size) ? rx_data[6 + 4 * i + 0] : 0x00;
+        uint8_t b1 = (4 * i + 1 < size) ? rx_data[6 + 4 * i + 1] : 0x00;
+        uint8_t b2 = (4 * i + 2 < size) ? rx_data[6 + 4 * i + 2] : 0x00;
+        uint8_t b3 = (4 * i + 3 < size) ? rx_data[6 + 4 * i + 3] : 0x00;
+
+        if (4 * i + 0 < size)
+            data[4 * i + 0] = b3;
+        if (4 * i + 1 < size)
+            data[4 * i + 1] = b2;
+        if (4 * i + 2 < size)
+            data[4 * i + 2] = b1;
+        if (4 * i + 3 < size)
+            data[4 * i + 3] = b0;
+    }
 
     // printk("TX : ");
     // for (int i = 0; i < 6; i++)
@@ -200,21 +239,16 @@ static int set_en(const struct device *dev, uint8_t state)
 
 static int boot_enable(const struct device *dev)
 {
+    uint8_t tab[4];
 
-    // Union to reverse endianess
-    union {
-        uint32_t val;
-        uint8_t tab[4];
-    } mpl460a_conv;
+    sys_put_be32(PL460_BOOT_PASS_0, tab);
+    boot_write(dev, 0, PL460_BOOT_UNLOCK, tab, 4);
 
-    mpl460a_conv.val = PL460_BOOT_PASS_0;
-    boot_write(dev, 0, PL460_BOOT_UNLOCK, mpl460a_conv.tab, 4);
+    sys_put_be32(PL460_BOOT_PASS_1, tab);
+    boot_write(dev, 0, PL460_BOOT_UNLOCK, tab, 4);
 
-    mpl460a_conv.val = PL460_BOOT_PASS_1;
-    boot_write(dev, 0, PL460_BOOT_UNLOCK, mpl460a_conv.tab, 4);
-
-    // mpl460a_conv.val = 0x01010001;
-    // boot_write(dev, PL460_MISCR, PL460_WR, mpl460a_conv.tab, 4);
+    sys_put_be32(0x01010001, tab);
+    boot_write(dev, PL460_MISCR, PL460_WR, tab, 4);
 
     return 0;
 }
@@ -223,9 +257,8 @@ static int boot_disable(const struct device *dev)
 {
     int ret;
     uint8_t tab[4];
-
     // Clean CPUWAIT to start program
-    sys_put_le32(0x00000000, tab);
+    sys_put_be32(0x01010000, tab);
     ret = boot_write(dev, PL460_MISCR, PL460_WR, tab, 4);
     if (ret < 0)
         return ret;
