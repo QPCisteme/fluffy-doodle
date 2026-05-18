@@ -244,8 +244,8 @@ static int boot_enable(const struct device *dev)
     sys_put_be32(PL460_BOOT_PASS_1, tab);
     boot_write(dev, 0, PL460_BOOT_UNLOCK, tab, 4);
 
-    sys_put_be32(0x01010001, tab);
-    boot_write(dev, PL460_MISCR, PL460_WR, tab, 4);
+    // sys_put_be32(0x00010001, tab);
+    // boot_write(dev, PL460_MISCR, PL460_WR, tab, 4);
 
     return 0;
 }
@@ -255,7 +255,7 @@ static int boot_disable(const struct device *dev)
     int ret;
     uint8_t tab[4];
     // Clean CPUWAIT to start program
-    sys_put_be32(0x01010000, tab);
+    sys_put_be32(0x00000000, tab);
     ret = boot_write(dev, PL460_MISCR, PL460_WR, tab, 4);
     if (ret < 0)
         return ret;
