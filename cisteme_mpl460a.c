@@ -88,12 +88,12 @@ static int boot_read(const struct device *dev, uint32_t addr, uint16_t cmd,
     if (size % 4 != 0)
         word_number++;
 
-    uint8_t rx_data[4 + word_number * 4];
+    uint8_t rx_data[6 + word_number * 4];
 
     struct spi_buf tx_spi_buf = {.buf = addr_cmd, .len = 6};
     struct spi_buf_set tx_spi_buf_set = {.buffers = &tx_spi_buf, .count = 1};
 
-    struct spi_buf rx_spi_bufs = {.buf = rx_data, .len = 4 + word_number * 4};
+    struct spi_buf rx_spi_bufs = {.buf = rx_data, .len = 6 + word_number * 4};
     struct spi_buf_set rx_spi_buf_set = {.buffers = &rx_spi_bufs, .count = 1};
 
     int ret;
@@ -105,10 +105,10 @@ static int boot_read(const struct device *dev, uint32_t addr, uint16_t cmd,
 
     for (int i = 0; i < word_number; i++)
     {
-        uint8_t b0 = (4 * i + 0 < size) ? rx_data[4 + 4 * i + 0] : 0x00;
-        uint8_t b1 = (4 * i + 1 < size) ? rx_data[4 + 4 * i + 1] : 0x00;
-        uint8_t b2 = (4 * i + 2 < size) ? rx_data[4 + 4 * i + 2] : 0x00;
-        uint8_t b3 = (4 * i + 3 < size) ? rx_data[4 + 4 * i + 3] : 0x00;
+        uint8_t b0 = (4 * i + 0 < size) ? rx_data[6 + 4 * i + 0] : 0x00;
+        uint8_t b1 = (4 * i + 1 < size) ? rx_data[6 + 4 * i + 1] : 0x00;
+        uint8_t b2 = (4 * i + 2 < size) ? rx_data[6 + 4 * i + 2] : 0x00;
+        uint8_t b3 = (4 * i + 3 < size) ? rx_data[6 + 4 * i + 3] : 0x00;
 
         if (4 * i + 0 < size)
             data[4 * i + 0] = b3;
@@ -126,7 +126,7 @@ static int boot_read(const struct device *dev, uint32_t addr, uint16_t cmd,
     printk("\r\n");
 
     printk("RX : ");
-    for (int i = 0; i < 4 + word_number * 4; i++)
+    for (int i = 0; i < 6 + word_number * 4; i++)
         printk("%.2x ", rx_data[i]);
     printk("\r\n");
 
@@ -774,8 +774,8 @@ static int fast_init(const struct device *dev, uint8_t *data, uint32_t size)
     k_msleep(100);
 
     ret = boot_check_fw(dev, data, size);
-    // if (ret != 0)
-    //     return ret;
+    if (ret != 0)
+        return ret;
 
     k_msleep(100);
 
