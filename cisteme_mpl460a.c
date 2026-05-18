@@ -126,8 +126,8 @@ static int boot_read(const struct device *dev, uint32_t addr, uint16_t cmd,
     printk("\r\n");
 
     printk("RX : ");
-    for (int i = 0; i < size; i++)
-        printk("%.2x ", data[i]);
+    for (int i = 0; i < 4 + word_number * 4; i++)
+        printk("%.2x ", rx_data[i]);
     printk("\r\n");
 
     return 0;
