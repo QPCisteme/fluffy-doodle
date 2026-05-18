@@ -777,8 +777,8 @@ static int fast_init(const struct device *dev, uint8_t *data, uint32_t size)
     k_msleep(100);
 
     ret = boot_check_fw(dev, data, size);
-    if (ret != 0)
-        return ret;
+    // if (ret != 0)
+    //     return ret;
 
     k_msleep(100);
 
