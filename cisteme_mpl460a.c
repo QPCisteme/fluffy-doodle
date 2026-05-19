@@ -173,9 +173,10 @@ static int boot_write_fw(const struct device *dev, uint8_t *data, uint32_t size)
         if (ret < 0)
             return ret;
 
-        ret = boot_wait_wip(dev);
-        if (ret < 0)
-            return ret;
+        // ret = boot_wait_wip(dev);
+        // if (ret < 0)
+        //     return ret;
+        k_msleep(5);
 
         byte_addr += pkt_size;
         max_addr -= pkt_size;
